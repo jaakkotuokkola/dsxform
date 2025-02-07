@@ -1,0 +1,9 @@
+{
+    "headers": ["id", "name", "email", "phone"],
+    "patterns": {
+      "id": "\\d{1,6}",
+      "name": "[A-Z][a-z]{1,9} [A-Z][a-z]{1,9}",
+      "email": "[a-z]{5,10}\\.[a-z]{5,10}@example\\.com",
+      "phone": "\\d{3}-\\d{3}-\\d{4}"
+    }
+  }

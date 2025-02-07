@@ -1,0 +1,8 @@
+sampledata/
+venv/
+test/
+test.py
+conftest.py
+__pycache__/
+.pytest_cache/
+test_output/
