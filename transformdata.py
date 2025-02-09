@@ -260,9 +260,9 @@ class DataTransformer:
             elif output_format == 'sqlite':
                 self.write_sqlite(data, output_path, 'data')
             elapsed_time = (time.time() - start_time) * 1000
-            logging.info(f"Bulk data generation completed in {elapsed_time:.2f} ms")
+            logging.info(f"Data generation completed in {elapsed_time:.2f} ms")
         except Exception as e:
-            logging.error(f"Error during bulk generation: {str(e)}")
+            logging.error(f"Error during data generation: {str(e)}")
             raise
 
     def convert(self, input_path, output_path, input_format, output_format, flatten=False):
