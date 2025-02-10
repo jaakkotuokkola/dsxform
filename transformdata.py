@@ -52,7 +52,18 @@ class DataTransformer:
         self.lib.free_ast.restype = None
         self.lib.free_tokens.argtypes = [ctypes.POINTER(Token)]
         self.lib.free_tokens.restype = None
+        self._ensure_temp_folders()
 
+    def _ensure_temp_folders(self):
+        """Ensure temporary folders exist for web interface file handling."""
+        import tempfile
+        self.temp_dir = tempfile.gettempdir()
+        os.makedirs(self.temp_dir, exist_ok=True)
+
+    def get_temp_path(self, filename):
+        """Get a temporary file path."""
+        return os.path.join(self.temp_dir, filename)
+        
     def is_nested(self, data):
         """Check if data contains nested dictionaries or lists."""
         for item in data:
@@ -141,16 +152,41 @@ class DataTransformer:
         except IOError:
             raise ValueError(f"Unable to write to file: {json_path}")
 
-    def read_sqlite(self, db_path, table):
+    def list_sqlite_tables(self, db_path):
+        """List all tables in a SQLite database."""
         try:
             conn = sqlite3.connect(db_path)
             cursor = conn.cursor()
-            cursor.execute(f'SELECT * FROM {table}')
-            data = cursor.fetchall()
-            headers = [desc[0] for desc in cursor.description]
-            return [dict(zip(headers, row)) for row in data]
-        except sqlite3.OperationalError:
-            raise ValueError(f"Table '{table}' does not exist in the database.")
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+            tables = [row[0] for row in cursor.fetchall()]
+            conn.close()
+            return tables
+        except sqlite3.Error as e:
+            raise ValueError(f"Error accessing SQLite database: {str(e)}")
+
+    def read_sqlite(self, db_path, table=None):
+        """Read from SQLite, optionally from a specific table."""
+        try:
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+            
+            if table is None:
+                # Read all tables
+                tables = self.list_sqlite_tables(db_path)
+                all_data = {}
+                for t in tables:
+                    cursor.execute(f'SELECT * FROM {t}')
+                    headers = [desc[0] for desc in cursor.description]
+                    all_data[t] = [dict(zip(headers, row)) for row in cursor.fetchall()]
+                return all_data
+            else:
+                # Read specific table
+                cursor.execute(f'SELECT * FROM {table}')
+                data = cursor.fetchall()
+                headers = [desc[0] for desc in cursor.description]
+                return [dict(zip(headers, row)) for row in data]
+        except sqlite3.Error as e:
+            raise ValueError(f"Error reading from SQLite: {str(e)}")
         finally:
             conn.close()
 
@@ -265,7 +301,7 @@ class DataTransformer:
             logging.error(f"Error during data generation: {str(e)}")
             raise
 
-    def convert(self, input_path, output_path, input_format, output_format, flatten=False):
+    def convert(self, input_path, output_path, input_format, output_format, table=None, flatten=False):
         """Convert data from one format to another."""
         logging.info(f"Starting conversion from {input_format} to {output_format}")
         start_time = time.time()
@@ -277,33 +313,19 @@ class DataTransformer:
             elif input_format == 'json':
                 data = self.read_json(input_path)
             elif input_format == 'sqlite':
-                data = self.read_sqlite(input_path, 'data')
+                data = self.read_sqlite(input_path, table)
+                if isinstance(data, dict):  # Multiple tables
+                    base_path = os.path.splitext(output_path)[0]
+                    for table_name, table_data in data.items():
+                        table_output = f"{base_path}_{table_name}.{output_format}"
+                        self._write_output(table_data, table_output, output_format, flatten)
+                    return
             elif input_format == 'xml':
                 data = self.read_xml(input_path)
             else:
                 raise ValueError(f"Unsupported input format: {input_format}")
             
-            # check for nested structures in formats that may use them
-            nest_formats = ['json', 'xml']
-            structured_formats = ['csv', 'sqlite']
-            if input_format in nest_formats and output_format in structured_formats and self.is_nested(data):
-                if flatten:
-                    data = self.flatten_data(data)
-                else:
-                    # exception for GUI handling
-                    raise Warning("Nested data detected in structured format output.")
-
-            # write to chosen output format
-            if output_format == 'csv':
-                self.write_csv(data, output_path)
-            elif output_format == 'json':
-                self.write_json(data, output_path)
-            elif output_format == 'sqlite':
-                self.write_sqlite(data, output_path, 'data')
-            elif output_format == 'xml':
-                self.write_xml(data, output_path)
-            else:
-                raise ValueError(f"Unsupported output format: {output_format}")
+            self._write_output(data, output_path, output_format, flatten)
             
             elapsed_time = (time.time() - start_time) * 1000
             logging.info(f"Conversion completed successfully in {elapsed_time:.2f} ms")
@@ -313,10 +335,37 @@ class DataTransformer:
         except Exception as e:
             logging.error(f"An error occurred: {str(e)}")
             raise
-    
+
+    def _write_output(self, data, output_path, output_format, flatten=False):
+        """Helper method to write output in specified format."""
+        # check for nested structures in formats that may use them
+        nest_formats = ['json', 'xml']
+        structured_formats = ['csv', 'sqlite']
+        if isinstance(data, list) and data and output_format in structured_formats:
+            if self.is_nested(data):
+                if flatten:
+                    data = self.flatten_data(data)
+                else:
+                    raise Warning("Nested data detected in structured format output.")
+
+        # write to chosen output format
+        if output_format == 'csv':
+            self.write_csv(data, output_path)
+        elif output_format == 'json':
+            self.write_json(data, output_path)
+        elif output_format == 'sqlite':
+            table_name = os.path.splitext(os.path.basename(output_path))[0]
+            self.write_sqlite(data, output_path, table_name)
+        elif output_format == 'xml':
+            self.write_xml(data, output_path)
+        else:
+            raise ValueError(f"Unsupported output format: {output_format}")
+
 class NestedDataWarning(Warning):
     pass
 
+# can be used as a command line tool through this file, will have less functionality than the web interface
+# note: need to research the best way to package this might need to organize the codebase differently
 class DataTransformerCLI:
     def __init__(self):
         self.transformer = DataTransformer()
@@ -369,7 +418,8 @@ class DataTransformerCLI:
 
         try:
             # convert dataset
-            self.transformer.convert(input_path, output_path, input_format, output_format)
+            self.transformer.convert(input_path, output_path, input_format, output_format,
+                                  flatten=False)
             print(f"Successfully converted '{input_path}' to '{output_path}'.")
         except NestedDataWarning:
             # check for nested data, notify user
