@@ -725,13 +725,5 @@ void generate_from_node(ASTNode* node, char* buffer, int* output_index) {
                 }
             }
             break;
-            // note: delete the following if it works without
-        case AST_GROUP:
-            break;
-            
-        case AST_START:
-        case AST_END:
-        case AST_QUANTIFIER:
-            break;
     }
 }
