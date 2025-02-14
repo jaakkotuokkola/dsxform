@@ -7,14 +7,12 @@
 // gcc -shared -o librandomvalues.so -fPIC randomvalues.c
 
 // lastedit: 13.2.2025, alternation added, tested manually
-// note: update logs and check efficiency 
-// using rand for the use case should be fine
 
 // This C code will break down a regular expression pattern.
 // It will then generate random data based on the different broken down tokens.
 // Currently supports a subset of relevant regex features for the purpose of this project.
 // Supported features can be seen in the token types below.
-// Explanding later to support more features should be relatively easy.
+// Expanding later to support more features should be relatively easy.
 
 typedef enum TokenType TokenType;
 typedef enum ASTNodeType ASTNodeType;

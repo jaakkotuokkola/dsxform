@@ -75,6 +75,8 @@ class DataTransformer:
     # Logic for flattening nested data structures
     # Flattens them to 1 level
     # Prefixes child keys with parent key and adds index when needed
+    # note: might be better to let the user edit structures manually with an interface 
+    #       to avoid forcing a specific structure and making the tool useful in more cases
     def flatten_data(self, data):
         """Flatten nested data into a list of flat dictionaries with ordered keys."""
         # Flatten each item and collect all keys in insertion order
@@ -246,8 +248,7 @@ class DataTransformer:
         except IOError:
             raise ValueError(f"Unable to write to file: {xml_path}")
     
-    # for now the idea is to generate data based on regular expressions
-    # this could be useful in generating data for different test cases of a system
+    # the idea is to generate random data based on regular expressions defined for each header in the config file
     def generate_data(self, rows, output_path, output_format):
         """Generate mock data based on configured header patterns."""
         logging.info(f"Starting data generation for {rows} rows")
@@ -266,7 +267,6 @@ class DataTransformer:
                 c_patterns[i] = patterns[h].encode()
 
             # calling C function for random data generation
-            # results will be an array of strings
             row_ptr_type = ctypes.POINTER(ctypes.c_char_p)
             data_pointer = row_ptr_type()
             if self.lib.generate_all_data(
@@ -364,8 +364,7 @@ class DataTransformer:
 class NestedDataWarning(Warning):
     pass
 
-# can be used as a command line tool through this file, will have less functionality than the web interface
-# note: need to research the best way to package this might need to organize the codebase differently
+# can be used as a command line tool through this file, will have less functionality than the browser interface
 class DataTransformerCLI:
     def __init__(self):
         self.transformer = DataTransformer()
