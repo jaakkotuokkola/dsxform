@@ -3,194 +3,245 @@
 <head>
     <title>dsxform</title>
     <style>
+        :root {
+            --primary-color: #3a5a40;
+            --primary-hover: #588157;
+            --bg-color: #fff;
+            --surface-color: #f8f9fa;
+            --border-color: #dee2e6;
+            --text-color: #212529;
+            --text-muted: #6c757d;
+        }
         body {
-            font-family: 'Segoe UI', -apple-system, system-ui, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            min-height: 100vh;
+        }
+        .sidebar {
+            width: 200px;
+            background-color: var(--surface-color);
+            border-right: 1px solid var(--border-color);
+            padding: 24px 0;
+        }
+        .logo {
+            padding: 0 24px 24px;
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--primary-color);
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 24px;
+        }
+        .tab-buttons {
+            display: flex;
+            flex-direction: column;
+        }
+        .tab-buttons button {
+            padding: 12px 24px;
+            width: 100%;
+            text-align: left;
+            background: none;
+            border: none;
+            color: var(--text-color);
+            cursor: pointer;
+            font-size: 15px;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+        .tab-buttons button:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+        .tab-buttons button.active {
+            background-color: rgba(58, 90, 64, 0.1);
+            border-left: 3px solid var(--primary-color);
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+        .main-content {
+            flex: 1;
+            padding: 32px;
             max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #1a1a1a;
-            color: #e0e0e0;
         }
         .tab {
             display: none;
-            padding: 20px;
-            border: 1px solid #333;
-            margin-top: 10px;
-            background-color: #242424;
-            border-radius: 4px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
         .tab.active {
             display: block;
         }
-        .tab-buttons button {
-            padding: 10px 20px;
-            margin-right: 10px;
-            cursor: pointer;
-            background-color: #333;
-            color: #e0e0e0;
-            border: 1px solid #444;
-            border-radius: 4px;
-            transition: all 0.2s ease;
-        }
-        .tab-buttons button:hover {
-            background-color: #444;
-        }
-        .tab-buttons button.active {
-            background-color: #0066cc;
-            color: white;
-            border: 1px solid #0077ee;
-        }
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 24px;
         }
         .form-group label {
             display: block;
             margin-bottom: 8px;
-            color: #b0b0b0;
+            color: var(--text-color);
+            font-size: 14px;
+            font-weight: 500;
         }
         input[type="file"],
         input[type="number"],
         select {
             width: 100%;
-            padding: 10px;
-            border: 1px solid #444;
-            background-color: #333;
-            color: #e0e0e0;
-            border-radius: 4px;
-            margin-top: 5px;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            box-sizing: border-box;
         }
+        input[type="file"]:focus,
         input[type="number"]:focus,
         select:focus {
             outline: none;
-            border-color: #0066cc;
-            box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.2);
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(58, 90, 64, 0.1);
+        }
+        input[type="file"] {
+            padding: 8px;
+        }
+        input[type="file"]::-webkit-file-upload-button {
+            padding: 8px 16px;
+            background: var(--primary-color);
+            border: 0;
+            border-radius: 4px;
+            color: white;
+            font-size: 13px;
+            margin-right: 12px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        input[type="file"]::-webkit-file-upload-button:hover {
+            background: var(--primary-hover);
         }
         button[type="submit"] {
-            background-color: #0066cc;
+            background-color: var(--primary-color);
             color: white;
             padding: 12px 24px;
             border: none;
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
             font-weight: 500;
-            transition: background-color 0.2s ease;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            width: 100%;
         }
         button[type="submit"]:hover {
-            background-color: #0077ee;
-        }
-        .progress {
-            display: none;
-            margin-top: 20px;
-            padding: 15px;
-            background-color: #333;
-            border-radius: 4px;
-            text-align: center;
-            color: #e0e0e0;
+            background-color: var(--primary-hover);
         }
         #tableSelection {
             display: none;
-            margin-top: 15px;
-            padding: 15px;
-            border: 1px solid #333;
-            border-radius: 4px;
-            background-color: #2a2a2a;
+            margin-top: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 16px;
+            background-color: var(--surface-color);
         }
         #tableSelect {
             width: 100%;
-            padding: 10px;
-            margin-top: 5px;
+            padding: 8px;
+            margin-top: 8px;
             min-height: 120px;
-            background-color: #333;
-            color: #e0e0e0;
-            border: 1px solid #444;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
             border-radius: 4px;
         }
         #tableSelect option {
             padding: 8px;
         }
         .table-actions {
-            margin-top: 10px;
-            font-size: 0.9em;
+            margin-top: 12px;
+            font-size: 13px;
         }
         .table-actions a {
-            color: #3399ff;
+            color: var(--primary-color);
             text-decoration: none;
-            margin-right: 15px;
+            margin-right: 16px;
             cursor: pointer;
             transition: color 0.2s ease;
         }
         .table-actions a:hover {
-            color: #66b3ff;
+            color: var(--primary-hover);
         }
-        h1, h2 {
-            color: #fff;
-            margin-bottom: 20px;
+        h2 {
+            font-size: 20px;
+            color: var(--text-color);
+            margin: 0 0 24px 0;
+            font-weight: 600;
+        }
+        .section-description {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin: -16px 0 24px 0;
         }
     </style>
 </head>
 <body>
-    <h1>dsxform</h1>
-    
-    <div class="tab-buttons">
-        <button onclick="showTab('convert')" class="active">Convert</button>
-        <button onclick="showTab('generate')">Generate</button>
+    <div class="sidebar">
+        <div class="logo">dsxform</div>
+        <div class="tab-buttons">
+            <button onclick="showTab('convert')" class="active">Convert data</button>
+            <button onclick="showTab('generate')">Generate mock data</button>
+        </div>
     </div>
 
-    <div id="convert" class="tab active">
-        <h2>Convert Data</h2>
-        <form id="convertForm">
-            <div class="form-group">
-                <label>Input File:</label>
-                <input type="file" name="file" id="fileInput" required>
-            </div>
-            
-            <div id="tableSelection" class="form-group">
-                <label>Select Tables:</label>
-                <p id="tableSelectionMessage" style="margin: 5px 0; font-size: 0.9em; color: #666;"></p>
-                <select id="tableSelect" name="table" multiple>
-                </select>
-                <div class="table-actions">
-                    <a onclick="selectAllTables()">Select All</a>
-                    <a onclick="deselectAllTables()">Deselect All</a>
+    <div class="main-content">
+        <div id="convert" class="tab active">
+            <h2>Convert Data</h2>
+            <p class="section-description">Transform structured data between different formats</p>
+            <form id="convertForm">
+                <div class="form-group">
+                    <label>Input File:</label>
+                    <input type="file" name="file" id="fileInput" required>
                 </div>
-            </div>
+                <div id="tableSelection" class="form-group">
+                    <label>Select Tables:</label>
+                    <p id="tableSelectionMessage" style="margin: 5px 0; font-size: 0.9em; color: #666;"></p>
+                    <select id="tableSelect" name="table" multiple>
+                    </select>
+                    <div class="table-actions">
+                        <a onclick="selectAllTables()">Select All</a>
+                        <a onclick="deselectAllTables()">Deselect All</a>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Convert To:</label>
+                    <select name="output_format" id="outputFormat" required>
+                        <option value="csv">CSV</option>
+                        <option value="json">JSON</option>
+                        <option value="sqlite">SQLite</option>
+                        <option value="xml">XML</option>
+                    </select>
+                </div>
+                <button type="submit">Convert</button>
+            </form>
+        </div>
 
-            <div class="form-group">
-                <label>Convert To:</label>
-                <select name="output_format" id="outputFormat" required>
-                    <option value="csv">CSV</option>
-                    <option value="json">JSON</option>
-                    <option value="sqlite">SQLite</option>
-                    <option value="xml">XML</option>
-                </select>
-            </div>
-            <button type="submit">Convert</button>
-        </form>
-    </div>
-
-    <div id="generate" class="tab">
-        <h2>Generate Data</h2>
-        <form id="generateForm">
-            <div class="form-group">
-                <label>Number of Rows:</label>
-                <input type="number" name="rows" value="100" min="1" required>
-            </div>
-            <div class="form-group">
-                <label>Output Format:</label>
-                <select name="format" required>
-                    <option value="csv">CSV</option>
-                    <option value="json">JSON</option>
-                    <option value="sqlite">SQLite</option>
-                    <option value="xml">XML</option>
-                </select>
-            </div>
-            <button type="submit">Generate</button>
-        </form>
-    </div>
-
-    <div id="progress" class="progress">
-        Processing... Please wait.
+        <div id="generate" class="tab">
+            <h2>Generate Data</h2>
+            <p class="section-description">Create mock data sets based on your defined patterns</p>
+            <form id="generateForm">
+                <div class="form-group">
+                    <label>Number of Rows:</label>
+                    <input type="number" name="rows" value="100" min="1" required>
+                </div>
+                <div class="form-group">
+                    <label>Output Format:</label>
+                    <select name="format" required>
+                        <option value="csv">CSV</option>
+                        <option value="json">JSON</option>
+                        <option value="sqlite">SQLite</option>
+                        <option value="xml">XML</option>
+                    </select>
+                </div>
+                <button type="submit">Generate</button>
+            </form>
+        </div>
     </div>
 
     <script>
@@ -217,12 +268,11 @@
         document.getElementById('fileInput').addEventListener('change', async function(e) {
             const file = e.target.files[0];
             const tableSelection = document.getElementById('tableSelection');
-            
             tableSelection.style.display = 'none';
             selectedTable = null;
             
             if (!file) return;
-            
+
             if (file.name.toLowerCase().endsWith('.sqlite')) {
                 const formData = new FormData();
                 formData.append('file', file);
@@ -280,9 +330,6 @@
                 return;
             }
 
-            const progress = document.getElementById('progress');
-            progress.style.display = 'block';
-
             const formData = new FormData();
             formData.append('file', file);
             formData.append('output_format', outputFormat);
@@ -294,11 +341,9 @@
                 
                 if (selectedTables.length === 0) {
                     alert('Please select at least one table');
-                    progress.style.display = 'none';
                     return;
                 }
-                
-                formData.append('table', JSON.stringify(selectedTables));
+                formData.append('table', selectedTables[0]);
             }
 
             try {
@@ -307,40 +352,37 @@
                     body: formData
                 });
 
-                if (response.ok) {
-                    const contentType = response.headers.get('content-type');
-                    if (contentType && contentType.includes('application/json')) {
-                        const jsonData = await response.json();
-                        alert(jsonData.message || 'Conversion successful!');
-                    } else {
-                        const data = await response.text();
-                        if (data === 'success') {
-                            alert('Conversion successful!');
-                        } else if (data === 'nested_data') {
-                            if (confirm('Nested data detected. Would you like to flatten it?')) {
-                                formData.append('flatten', 'true');
-                                await handleFlattenedConversion(formData);
-                            }
+                if (!response.ok) {
+                    throw new Error(await response.text());
+                }
+
+                const contentType = response.headers.get('Content-Type');
+                if (contentType === 'application/json') {
+                    const jsonResponse = await response.json();
+                    if (jsonResponse.type === 'tables') {
+                        // Handle SQLite table selection
+                        const select = document.getElementById('tableSelect');
+                        select.innerHTML = jsonResponse.tables
+                            .map(t => `<option value="${t}">${t}</option>`).join('');
+                        document.getElementById('tableSelectionMessage').textContent = 
+                            'Hold Ctrl/Cmd to select multiple tables';
+                        document.getElementById('tableSelection').style.display = 'block';
+                        if (jsonResponse.tables.length > 0) {
+                            select.options[0].selected = true;
                         }
+                    } else if (jsonResponse.stage === 'error') {
+                        alert(jsonResponse.message);
                     }
                 } else {
-                    throw new Error(await response.text());
+                    const result = await response.text();
+                    alert(result);
                 }
             } catch (error) {
                 alert('Error: ' + error.message);
-            } finally {
-                progress.style.display = 'none';
             }
         }
 
-        document.getElementById('convertForm').onsubmit = async (e) => {
-            e.preventDefault();
-            await handleConversion();
-        };
-
-        document.getElementById('generateForm').onsubmit = async (e) => {
-            e.preventDefault();
-            const form = document.getElementById('generateForm');
+        async function handleGeneration(form) {
             const formData = new FormData(form);
             const rows = parseInt(formData.get('rows'));
             const format = formData.get('format');
@@ -349,38 +391,35 @@
                 throw new Error('Invalid row count');
             }
 
-            const response = await fetch('/generate', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: `rows=${rows}&format=${format}`
-            });
-
-            if (response.ok) {
-                const result = await response.text();
-                alert(result);
-            } else {
-                const error = await response.text();
-                alert(error || 'An error occurred');
-            }
-        };
-
-        async function handleFlattenedConversion(formData) {
             try {
-                const response = await fetch('/convert', {
+                const response = await fetch('/generate', {
                     method: 'POST',
-                    body: formData
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `rows=${rows}&format=${format}`
                 });
+
                 if (response.ok) {
-                    alert('Conversion successful!');
+                    const result = await response.text();
+                    alert(result);
                 } else {
-                    throw new Error('Flattening failed');
+                    throw new Error(await response.text());
                 }
             } catch (error) {
                 alert('Error: ' + error.message);
             }
         }
+
+        document.getElementById('generateForm').onsubmit = async (e) => {
+            e.preventDefault();
+            await handleGeneration(e.target);
+        };
+
+        document.getElementById('convertForm').onsubmit = async (e) => {
+            e.preventDefault();
+            await handleConversion();
+        };
     </script>
 </body>
 </html>
