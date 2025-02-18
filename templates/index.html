@@ -356,26 +356,40 @@
                     throw new Error(await response.text());
                 }
 
-                const contentType = response.headers.get('Content-Type');
-                if (contentType === 'application/json') {
-                    const jsonResponse = await response.json();
-                    if (jsonResponse.type === 'tables') {
-                        // Handle SQLite table selection
-                        const select = document.getElementById('tableSelect');
-                        select.innerHTML = jsonResponse.tables
-                            .map(t => `<option value="${t}">${t}</option>`).join('');
-                        document.getElementById('tableSelectionMessage').textContent = 
-                            'Hold Ctrl/Cmd to select multiple tables';
-                        document.getElementById('tableSelection').style.display = 'block';
-                        if (jsonResponse.tables.length > 0) {
-                            select.options[0].selected = true;
-                        }
-                    } else if (jsonResponse.stage === 'error') {
-                        alert(jsonResponse.message);
+                const jsonResponse = await response.json();
+                
+                if (jsonResponse.type === 'tables') {
+                    // Handle SQLite table selection
+                    const select = document.getElementById('tableSelect');
+                    select.innerHTML = jsonResponse.tables
+                        .map(t => `<option value="${t}">${t}</option>`).join('');
+                    document.getElementById('tableSelectionMessage').textContent = 
+                        'Hold Ctrl/Cmd to select multiple tables';
+                    document.getElementById('tableSelection').style.display = 'block';
+                    if (jsonResponse.tables.length > 0) {
+                        select.options[0].selected = true;
                     }
-                } else {
-                    const result = await response.text();
-                    alert(result);
+                } else if (jsonResponse.type === 'nested_data_warning') {
+                    // Handle nested data warning
+                    if (confirm(jsonResponse.message)) {
+                        // Retry with flatten=true
+                        formData.append('flatten', 'true');
+                        const retryResponse = await fetch('/convert', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        
+                        if (!retryResponse.ok) {
+                            throw new Error(await retryResponse.text());
+                        }
+                        
+                        const result = await retryResponse.json();
+                        if (result.type === 'success') {
+                            alert('Conversion completed successfully with flattening.');
+                        }
+                    }
+                } else if (jsonResponse.type === 'success') {
+                    alert(jsonResponse.message);
                 }
             } catch (error) {
                 alert('Error: ' + error.message);

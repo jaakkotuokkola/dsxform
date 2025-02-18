@@ -5,8 +5,13 @@ import time
 import ctypes
 import sqlite3
 import logging
+import tempfile
 import argparse
+import mimetypes
+from urllib.parse import parse_qs
 import xml.etree.ElementTree as ET
+from filedialog import get_save_dialog
+from http.server import HTTPServer, BaseHTTPRequestHandler
 
 # This python file is a simple tool for converting data between different formats
 # And for generating mock data based on given regular expressions
@@ -100,14 +105,20 @@ class DataTransformer:
         return flattened
 
     def _flatten_value(self, key, value, flattened):
+        """Standardize flattening for both JSON and XML sources."""
         if isinstance(value, dict):
             for sub_key, sub_value in value.items():
-                self._flatten_value(f"{key}_{sub_key}", sub_value, flattened)
+                if sub_value is not None:  # Preserve null values
+                    self._flatten_value(f"{key}_{sub_key}", sub_value, flattened)
         elif isinstance(value, list):
-            if value:  # Only process non-empty lists to avoid adding redundant parent keys
-                       # perhaps this needs to change, not sure of the usual approach
+            if value:  # Process non-empty lists
                 for idx, elem in enumerate(value):
-                    self._flatten_value(f"{key}_{idx}", elem, flattened)
+                    if isinstance(elem, (dict, list)):
+                        # For nested structures (objects/arrays), use consistent indexing
+                        self._flatten_value(f"{key}_{idx}", elem, flattened)
+                    else:
+                        # For primitive arrays, use simpler indexing
+                        flattened[f"{key}_{idx}"] = elem
         else:
             flattened[key] = value
 
@@ -214,37 +225,134 @@ class DataTransformer:
             conn.close()
 
     def read_xml(self, xml_path):
+        """Read XML preserving nested structures consistently with JSON."""
+        def parse_element(elem):
+            """Recursively parse XML element into Python data structure."""
+            result = {}
+            
+            # group items by their tag to detect arrays
+            tag_groups = {}
+            for child in elem:
+                if child.tag not in tag_groups:
+                    tag_groups[child.tag] = []
+                tag_groups[child.tag].append(child)
+            
+            # process each group of elements
+            for tag, children in tag_groups.items():
+                # skip empty elements
+                if len(children) == 0:
+                    continue
+
+                # if we have multiple items or this is an array container
+                if len(children) > 1 or any(c.tag == 'item' for c in children):
+                    items = []
+                    # process each child in the group
+                    for child in children:
+                        if child.tag == 'item':
+                            # handle item elements
+                            if len(child) > 0:
+                                # complex item with children
+                                items.append(parse_element(child))
+                            else:
+                                # simple item (primitive value)
+                                items.append(child.text or '')
+                        else:
+                            # handle non-item array elements
+                            if len(child) > 0:
+                                items.append(parse_element(child))
+                            else:
+                                items.append(child.text or '')
+                    result[tag] = items
+                else:
+                    # single element
+                    child = children[0]
+                    if len(child) > 0:
+                        result[tag] = parse_element(child)
+                    else:
+                        result[tag] = child.text or ''
+            
+            return result
+
         try:
             tree = ET.parse(xml_path)
             root = tree.getroot()
-            return [{child.tag: child.text for child in record} for record in root]
+            
+            if root.tag == 'root':
+                # handle standard format with record elements
+                records = []
+                for record in root.findall('record'):
+                    records.append(parse_element(record))
+                return records
+            else:
+                # handle single record or custom format
+                return [parse_element(root)]
+                
         except FileNotFoundError:
             raise ValueError(f"Input file not found: {xml_path}")
         except ET.ParseError:
             raise ValueError(f"Invalid XML format: {xml_path}")
 
     def write_xml(self, data, xml_path):
-        """Write data to XML, taking nested structures into account."""
+        """Write data to XML, preserving original structure and order."""
         def build_xml(element, value):
             if isinstance(value, dict):
+                # Process dictionary items in original order
                 for k, v in value.items():
-                    if v or isinstance(v, (bool, int, float)):  # Skip empty arrays/dicts
+                    # Skip null values but allow 0/False
+                    if v is not None and (v or isinstance(v, (bool, int, float))):
                         child = ET.SubElement(element, k)
                         build_xml(child, v)
             elif isinstance(value, list):
-                if value:  # Skip empty lists
-                    for item in value:
-                        child = ET.SubElement(element, "item")
+                # For arrays, maintain the same tag for all items
+                for item in value:
+                    # For primitive arrays, create direct items
+                    if isinstance(item, (str, int, float, bool)):
+                        child = ET.SubElement(element, 'item')
+                        child.text = str(item)
+                    else:
+                        # For object arrays, keep the parent tag's structure
+                        child = ET.SubElement(element, 'item')
                         build_xml(child, item)
             else:
-                element.text = str(value)
+                # Handle primitive values
+                element.text = str(value) if value is not None else ''
 
         try:
             root = ET.Element("root")
-            for record in data:
-                record_elem = ET.SubElement(root, "record")
-                build_xml(record_elem, record)
-            ET.ElementTree(root).write(xml_path)
+            if isinstance(data, list):
+                # For list input, wrap each item in a record element
+                for record in data:
+                    record_elem = ET.SubElement(root, "record")
+                    build_xml(record_elem, record)
+            else:
+                # For single record input
+                build_xml(root, data)
+
+            # Format the XML with proper indentation
+            def indent(elem, level=0):
+                i = "\n" + level * "  "
+                if len(elem):
+                    if not elem.text or not elem.text.strip():
+                        elem.text = i + "  "
+                    if not elem.tail or not elem.tail.strip():
+                        elem.tail = i
+                    for subelem in elem:
+                        indent(subelem, level + 1)
+                    if not elem.tail or not elem.tail.strip():
+                        elem.tail = i
+                else:
+                    if level and (not elem.tail or not elem.tail.strip()):
+                        elem.tail = i
+
+            indent(root)
+            tree = ET.ElementTree(root)
+            # Use UTF-8 encoding and add XML declaration
+            tree.write(xml_path, encoding='utf-8', xml_declaration=True)
+            
+            # Add final newline
+            with open(xml_path, 'a') as f:
+                f.write('\n')
+
         except IOError:
             raise ValueError(f"Unable to write to file: {xml_path}")
     
@@ -446,6 +554,259 @@ class DataTransformerCLI:
         except Exception as e:
             print(f"Data generation failed: {str(e)}")
 
+UPLOAD_FOLDER = tempfile.gettempdir()
+ALLOWED_EXTENSIONS = {'csv', 'json', 'sqlite', 'xml'}
+
+class MultipartFormParser:
+    """Parser for multipart/form-data"""
+    def __init__(self, environ):
+        self.boundary = environ.get('boundary').encode()
+        self.content_length = int(environ.get('content-length', 0))
+        self.input_stream = environ.get('wsgi.input')
+        self._fields = {}
+        self._files = {}
+        self._parse()
+
+    def _parse(self):
+        # read the entire input stream
+        data = self.input_stream.read(self.content_length)
+        
+        # split on boundary and remove first and last parts
+        parts = data.split(b'--' + self.boundary)[1:-1]
+        
+        for part in parts:
+            # remove leading and trailing \r\n
+            part = part.strip(b'\r\n')
+            
+            # split headers and content
+            try:
+                headers_raw, content = part.split(b'\r\n\r\n', 1)
+                headers = dict(line.split(': ', 1) for line in 
+                             headers_raw.decode().split('\r\n') if ': ' in line)
+                
+                # parse content disposition
+                disp_header = headers.get('Content-Disposition', '')
+                disp_params = dict(param.strip().split('=', 1) for param in 
+                                 disp_header.split(';')[1:] if '=' in param)
+                
+                name = disp_params.get('"name"', disp_params.get('name', '')).strip('"')
+                
+                if 'filename' in disp_params:
+                    filename = disp_params['filename'].strip('"')
+                    if filename:
+                        self._files[name] = {
+                            'filename': filename,
+                            'content': content,
+                            'content-type': headers.get('Content-Type', 
+                                          'application/octet-stream')
+                        }
+                else:
+                    self._fields[name] = content.decode().strip()
+            except Exception as e:
+                print(f"Error parsing part: {e}")
+
+    def getvalue(self, key, default=None):
+        """Get a form field value"""
+        return self._fields.get(key, default)
+
+    def getfile(self, key):
+        """Get a file field"""
+        return self._files.get(key)
+
+class DataTransformerHandler(BaseHTTPRequestHandler):
+    def __init__(self, *args, **kwargs):
+        self.transformer = DataTransformer()
+        super().__init__(*args, **kwargs)
+
+    def do_GET(self):
+        if self.path == '/':
+            self.path = '/index.html'
+        
+        try:
+            file_path = os.path.join(os.path.dirname(__file__), 'templates', self.path.lstrip('/'))
+            with open(file_path, 'rb') as f:
+                content = f.read()
+            
+            self.send_response(200)
+            self.send_header('Content-Type', mimetypes.guess_type(self.path)[0] or 'text/plain')
+            self.end_headers()
+            self.wfile.write(content)
+        except FileNotFoundError:
+            self.send_error(404, 'File not found')
+
+    def do_POST(self):
+        if self.path == '/convert':
+            self.handle_convert()
+        elif self.path == '/generate':
+            self.handle_generate()
+        else:
+            self.send_error(404, 'Not found')
+
+    def handle_convert(self):
+        try:
+            content_type = self.headers.get('Content-Type', '')
+            if not content_type.startswith('multipart/form-data'):
+                self.send_error(400, 'Expected multipart/form-data')
+                return
+
+            boundary = content_type.split('boundary=')[1].strip()
+            environ = {
+                'boundary': boundary,
+                'content-length': self.headers.get('Content-Length', 0),
+                'wsgi.input': self.rfile
+            }
+            
+            form = MultipartFormParser(environ)
+            file_data = form.getfile('file')
+            
+            if not file_data:
+                self.send_error(400, 'No file provided')
+                return
+
+            filename = file_data['filename']
+            if not filename:
+                self.send_error(400, 'No file selected')
+                return
+
+            output_format = form.getvalue('output_format')
+            if not output_format:
+                self.send_error(400, 'No output format specified')
+                return
+
+            # save uploaded file
+            input_path = os.path.join(UPLOAD_FOLDER, filename)
+            with open(input_path, 'wb') as f:
+                f.write(file_data['content'])
+
+            try:
+                input_format = filename.rsplit('.', 1)[1].lower()
+                flatten = form.getvalue('flatten') == 'true'
+                table_name = form.getvalue('table')
+
+                # special handling for SQLite input, to list tables
+                if (input_format == 'sqlite'):
+                    # only prompt for tables on first request (without table parameter)
+                    if not table_name:
+                        tables = self.transformer.list_sqlite_tables(input_path)
+                        if not tables:
+                            self.send_error(400, "No tables found in SQLite database")
+                            os.unlink(input_path)
+                            return
+                        
+                        # send table list to client
+                        response_data = {
+                            "type": "tables",
+                            "tables": tables,
+                            "message": "Select a table or choose 'All Tables'"
+                        }
+                        self.send_response(200)
+                        self.send_header('Content-Type', 'application/json')
+                        self.end_headers()
+                        self.wfile.write(json.dumps(response_data).encode())
+                        return
+
+                # rest of the conversion logic
+                # show save dialog first
+                base_name = "converted_tables" if table_name == '*' else "converted"
+                output_path = get_save_dialog(
+                    title="Save Converted File",
+                    default_name=f"{base_name}.{output_format}"
+                )
+                
+                if not output_path:  # user cancelled
+                    os.unlink(input_path)
+                    return
+
+                # convert with table name (None means all tables, note: might better to force choosing, since sqlite might be very large)
+                table = None if table_name == '*' else table_name
+                self.transformer.convert(input_path, output_path, 
+                                      input_format, output_format, 
+                                      table=table,
+                                      flatten=flatten)
+                
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "type": "success",
+                    "message": "Conversion completed successfully"
+                }).encode())
+
+            except NestedDataWarning:
+                self.send_response(200)  # Changed from 500 to 200
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "type": "nested_data_warning",
+                    "message": "Nested data detected. Would you like to flatten it?"
+                }).encode())
+            finally:
+                if os.path.exists(input_path):
+                    os.unlink(input_path)
+
+        except Exception as e:
+            self.send_error(500, str(e))
+
+    def handle_generate(self):
+        try:
+            # form data needs to be parsed
+            content_length = int(self.headers.get('Content-Length', 0))
+            post_data = self.rfile.read(content_length).decode('utf-8')
+            form_data = parse_qs(post_data)
+
+            # get row count and format
+            try:
+                rows = int(form_data.get('rows', ['100'])[0])
+                if rows < 1:
+                    raise ValueError("Row count must be positive")
+            except ValueError:
+                self.send_error(400, "Invalid row count")
+                return
+
+            selected_format = form_data.get('format', ['csv'])[0]
+            if selected_format not in ALLOWED_EXTENSIONS:
+                self.send_error(400, "Invalid format")
+                return
+
+            # ask user for save location using native file dialog of the OS
+            default_ext = f'.{selected_format}'
+            output_path = get_save_dialog(
+                title="Save Generated Data",
+                default_name=f"generated.{selected_format}"
+            )
+            
+            if not output_path:  # user cancelled
+                self.send_error(400, "Operation cancelled")
+                return
+
+            # extract format from actual file path
+            output_format = output_path.rsplit('.', 1)[1].lower()
+            if output_format not in ALLOWED_EXTENSIONS:
+                self.send_error(400, "Invalid output format")
+                return
+
+            # generate data
+            self.transformer.generate_data(rows, output_path, output_format)
+
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(f"Generated {rows} rows of data in {output_format} format!".encode())
+
+        except Exception as e:
+            self.send_error(500, str(e))
+
+def run_server(port=8000):
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+    server = HTTPServer(('localhost', port), DataTransformerHandler)
+    print(f'Starting server on http://localhost:{port}')
+    server.serve_forever()
+
 if __name__ == "__main__":
-    cli = DataTransformerCLI()
-    cli.run()
+    import sys
+    if len(sys.argv) > 1 and sys.argv[1] == "serve":
+        # web interface if "serve" argument is provided
+        run_server()
+    else:
+        # CLI by default with command line arguments
+        cli = DataTransformerCLI()
+        cli.run()
