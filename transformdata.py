@@ -36,166 +36,6 @@ class Token(ctypes.Structure):
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-# some sort of profiling might be useful, but to get a good idea of the input and output data
-# especially if cleaning and restructuring is implemented
-# maybe even rendering the datasets in the frontend and allowing the user to edit them and see the changes in real time
-# while allowing simple cleaning and restructuring operations. profiling could be related to that interface if implemented
-class DataProfiler:
-    """Short profiling of input and output datasets. (Unique values, nulls, etc.)"""  
-    def __init__(self):
-        self.reset()
-    
-    def reset(self):
-        """Reset all profiling metrics."""
-        self.total_rows = 0
-        self.total_columns = 0
-        self.column_stats = {}
-
-    # note: no type profiling displayed currently in the frontend
-    def analyze_string(self, value, stats):
-        """Analyze string values for length statistics."""
-        if not isinstance(value, str):
-            return
-            
-        length = len(value)
-        if 'length_stats' not in stats:
-            stats['length_stats'] = {'min': length, 'max': length, 'sum': length, 'count': 1}
-        else:
-            ls = stats['length_stats']
-            ls['min'] = min(ls['min'], length)
-            ls['max'] = max(ls['max'], length)
-            ls['sum'] += length
-            ls['count'] += 1
-
-    def profile_row(self, row):
-        """Profile a single data row."""
-        for column, value in row.items():
-            if column not in self.column_stats:
-                self.column_stats[column] = {
-                    'types': defaultdict(int),
-                    'null_count': 0,
-                    'unique_values': set(),
-                    'consistency_score': 0
-                }
-            
-            stats = self.column_stats[column]
-            
-            # track value type and null values
-            value_type = self.infer_type(value)
-            stats['types'][value_type] += 1
-            
-            if value is None or value == '':
-                stats['null_count'] += 1
-            else:
-                stats['unique_values'].add(str(value))
-                if value_type == 'string':
-                    self.analyze_string(value, stats)
-                elif value_type in ('integer', 'float'):
-                    self.update_numeric_stats(column, value, stats)
-
-    def generate_report(self):
-        """Generate a formatted profile report with enhanced metrics."""
-        report = {
-            'summary': {
-                'total_rows': self.total_rows,
-                'total_columns': self.total_columns,
-                'timestamp': datetime.now().isoformat()
-            },
-            'columns': {}
-        }
-
-        for column, stats in self.column_stats.items():
-            # calculate all metrics before removing unique_values set
-            unique_count = len(stats['unique_values'])
-            valid_count = self.total_rows - stats['null_count']
-            
-            # calculate numeric stats if available
-            if 'sum' in stats and 'count' in stats and stats['count'] > 0:
-                stats['mean'] = stats['sum'] / stats['count']
-            
-            column_report = {
-                'type_distribution': dict(stats['types']),
-                'null_count': stats['null_count'],
-                'null_percentage': (stats['null_count'] / self.total_rows * 100) if self.total_rows > 0 else 0,
-                'unique_count': unique_count,
-                'unique_percentage': (unique_count / valid_count * 100) if valid_count > 0 else 0,
-                'completeness': ((self.total_rows - stats['null_count']) / self.total_rows * 100) if self.total_rows > 0 else 0
-            }
-
-            # add string-specific stats if present
-            if 'length_stats' in stats:
-                ls = stats['length_stats']
-                column_report['string_stats'] = {
-                    'min_length': ls['min'],
-                    'max_length': ls['max'],
-                    'avg_length': ls['sum'] / ls['count']
-                }
-
-            # add numeric statistics if available
-            if 'sum' in stats:
-                column_report.update({
-                    'min': stats['min'],
-                    'max': stats['max'],
-                    'mean': stats['mean'],
-                    'numeric_stats': {
-                        'sum': stats['sum'],
-                        'variance': stats.get('variance', 0)
-                    }
-                })
-
-            # now safe to remove unique_values set
-            del stats['unique_values']
-            report['columns'][column] = column_report
-
-        return report
-
-    def infer_type(self, value):
-        """Infer the type of a value."""
-        if value is None:
-            return 'null'
-        try:
-            int(value)
-            return 'integer'
-        except (ValueError, TypeError):
-            try:
-                float(value)
-                return 'float'
-            except (ValueError, TypeError):
-                if isinstance(value, bool):
-                    return 'boolean'
-                if isinstance(value, (dict, list)):
-                    return 'nested'
-                return 'string'
-
-    def update_numeric_stats(self, column, value, curr_stats):
-        """Update running statistics for numeric values."""
-        try:
-            num_value = float(value)
-            if 'sum' not in curr_stats:
-                curr_stats['sum'] = num_value
-                curr_stats['min'] = num_value
-                curr_stats['max'] = num_value
-                curr_stats['count'] = 1
-            else:
-                curr_stats['sum'] += num_value
-                curr_stats['min'] = min(curr_stats['min'], num_value)
-                curr_stats['max'] = max(curr_stats['max'], num_value)
-                curr_stats['count'] += 1
-        except (ValueError, TypeError):
-            pass
-
-    def profile_data(self, data):
-        """Generate a complete profile from input or output data."""
-        self.reset()
-        self.total_rows = len(data)
-        if self.total_rows > 0:
-            self.total_columns = len(data[0].keys())
-        
-        for row in data:
-            self.profile_row(row)
-        
-        return self.generate_report()
-
 class DataTransformer:
     def __init__(self, config_path="genconfig.json"):
         self.supported_formats = ['csv', 'json', 'sqlite', 'xml']
@@ -220,7 +60,6 @@ class DataTransformer:
         self.lib.free_tokens.argtypes = [ctypes.POINTER(Token)]
         self.lib.free_tokens.restype = None
         self._ensure_temp_folders()
-        self.profiler = DataProfiler()
 
     def _ensure_temp_folders(self):
         """Ensure temporary folders exist for web interface file handling."""
@@ -585,27 +424,6 @@ class DataTransformer:
         else:
             raise ValueError(f"Unsupported input format: {input_format}")
 
-    def profile_file(self, file_path, format, table=None):
-        """Profile a data file without conversion."""
-        try:
-            data = self._read_input(file_path, format, table)
-            if isinstance(data, dict):  # SQLite with multiple tables
-                results = {}
-                for table_name, table_data in data.items():
-                    results[table_name] = self.profiler.profile_data(table_data)
-                return {
-                    'type': 'multi_table_profile',
-                    'results': results
-                }
-            else:
-                return {
-                    'type': 'single_profile',
-                    'profile': self.profiler.profile_data(data)
-                }
-        except Exception as e:
-            logging.error(f"Error profiling file: {str(e)}")
-            raise
-
     def convert(self, input_path, output_path, input_format, output_format, table=None, flatten=False):
         """Convert data from one format to another."""
         logging.info(f"Starting conversion from {input_format} to {output_format}")
@@ -652,7 +470,7 @@ class DataTransformer:
             return {
                 'type': 'success',
                 'message': 'Conversion completed successfully',
-                'output_path': output_path,  # Add this line
+                'output_path': output_path,
                 'timing': {
                     'elapsed_ms': elapsed_time,
                     'rows_per_second': len(input_data) / (elapsed_time / 1000)
@@ -662,13 +480,6 @@ class DataTransformer:
         except Exception as e:
             logging.error(f"An error occurred: {str(e)}")
             raise
-
-    def _write_and_profile(self, data, output_path, output_format, flatten):
-        """Write data and generate profile."""
-        if flatten and self.is_nested(data):
-            data = self.flatten_data(data)
-        self._write_output(data, output_path, output_format)
-        return self.profiler.profile_data(data)
 
     def _write_output(self, data, output_path, output_format, flatten=False):
         """Helper method to write output in specified format."""
@@ -763,8 +574,6 @@ class DataTransformerCLI:
                     print("Conversion aborted by user.")
             else:
                 print(f"Successfully converted '{input_path}' to '{output_path}'.")
-                print("Data Profile:")
-                print(json.dumps(result['profile'], indent=4))
         except Exception as e:
             print(f"Conversion failed: {str(e)}")
 
@@ -868,8 +677,6 @@ class DataTransformerHandler(BaseHTTPRequestHandler):
             self.handle_convert()
         elif self.path == '/generate':
             self.handle_generate()
-        elif self.path == '/profile':
-            self.handle_profile()
         else:
             self.send_error(404, 'Not found')
 
@@ -1019,54 +826,6 @@ class DataTransformerHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.end_headers()
             self.wfile.write(f"Generated {rows} rows of data in {output_format} format!".encode())
-
-        except Exception as e:
-            self.send_error(500, str(e))
-
-    def handle_profile(self):
-        """Handle profiling request."""
-        try:
-            content_type = self.headers.get('Content-Type', '')
-            if not content_type.startswith('multipart/form-data'):
-                self.send_error(400, 'Expected multipart/form-data')
-                return
-
-            form = MultipartFormParser({
-                'boundary': content_type.split('boundary=')[1].strip(),
-                'content-length': self.headers.get('Content-Length', 0),
-                'wsgi.input': self.rfile
-            })
-
-            # Handle both file uploads and file paths
-            file_data = form.getfile('file')
-            input_path = None
-
-            if file_data and file_data['filename']:
-                # Handle uploaded file
-                input_path = os.path.join(UPLOAD_FOLDER, file_data['filename'])
-                with open(input_path, 'wb') as f:
-                    f.write(file_data['content'])
-                input_format = file_data['filename'].rsplit('.', 1)[1].lower()
-            else:
-                # Handle file path
-                input_path = form.getvalue('path')
-                if not input_path or not os.path.exists(input_path):
-                    self.send_error(400, 'No valid file provided')
-                    return
-                input_format = input_path.rsplit('.', 1)[1].lower()
-
-            try:
-                table_name = form.getvalue('table')
-                result = self.transformer.profile_file(input_path, input_format, table_name)
-                
-                self.send_response(200)
-                self.send_header('Content-Type', 'application/json')
-                self.end_headers()
-                self.wfile.write(json.dumps(result).encode())
-
-            finally:
-                if file_data and input_path and os.path.exists(input_path):
-                    os.unlink(input_path)
 
         except Exception as e:
             self.send_error(500, str(e))
