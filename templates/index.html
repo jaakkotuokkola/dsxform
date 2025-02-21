@@ -116,7 +116,7 @@
             transition: background 0.2s ease;
         }
         input[type="file"]::-webkit-file-upload-button:hover {
-            background: var(--primary-hover);
+            background: var (--primary-hover);
         }
         button[type="submit"] {
             background-color: var(--primary-color);
@@ -179,6 +179,257 @@
             font-size: 14px;
             margin: -16px 0 24px 0;
         }
+        .preview-modal {
+            display: none;
+            position: fixed;  /* Change to fixed for more reliable dragging */
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            resize: both;
+            overflow: hidden;
+            /* Initial position and size */
+            top: 20%;
+            left: 20%;
+            width: 60%;
+            height: 60%;
+            min-width: 400px;
+            min-height: 300px;
+            transform: none;  /* Remove transform */
+        }
+        
+        .preview-content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+        
+        .preview-header {
+            cursor: move;
+            user-select: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        .preview-header h3 {
+            margin: 0;
+            font-size: 18px;
+        }
+        
+        .preview-close {
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-muted);
+        }
+        
+        .preview-data {
+            flex: 1;
+            overflow: auto;
+            border: 1px solid #2d2d2d;
+            border-radius: 4px;
+            background: #1e1e1e;  /* Dark theme for all formats */
+            color: #d4d4d4;
+            padding: 20px;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            white-space: pre;
+            tab-size: 2;
+        }
+        
+        .preview-data.json-view {
+            white-space: pre;
+            background: #1e1e1e;
+            color: #d4d4d4;
+        }
+        
+        .preview-data.xml-view {
+            white-space: pre-wrap;
+        }
+        
+        .preview-data.csv-view {
+            white-space: pre;
+        }
+        
+        .preview-data.sqlite-view {
+            white-space: pre;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+        }
+        
+        .preview-footer {
+            margin-top: 20px;
+            display: flex;
+            justify-content: flex-end;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        #finalizeConversion {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+        
+        #finalizeConversion:hover {
+            background-color: var(--primary-hover);
+        }
+
+        /* Syntax highlighting for JSON/XML */
+        .string { color: #22863a; }
+        .number { color: #005cc5; }
+        .boolean { color: #005cc5; }
+        .null { color: #5a5a5a; }
+        .key { color: #d73a49; }
+        .tag { color: #22863a; }
+        .attr { color: #6f42c1; }
+
+        .preview-data.sqlite-view {
+            padding: 0;
+        }
+        
+        /* SQLite table styling */
+        .sqlite-table {
+            border-collapse: collapse;
+            width: 100%;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            background: #1e1e1e;
+        }
+        
+        .sqlite-table .schema {
+            color: #569cd6;  /* Blue for schema keywords */
+            padding: 12px 16px;
+            border-bottom: 1px solid #2d2d2d;
+        }
+        
+        .sqlite-table .column-header {
+            background: #252526;
+            color: #cccccc;
+            text-align: left;
+            padding: 8px 16px;
+            border-bottom: 2px solid #2d2d2d;
+        }
+        
+        .sqlite-table .data-row {
+            border-bottom: 1px solid #2d2d2d;
+        }
+        
+        .sqlite-table .data-row:hover {
+            background: #2d2d2d;
+        }
+        
+        .sqlite-table td {
+            padding: 6px 16px;
+            color: #d4d4d4;
+        }
+        
+        .sqlite-table .null-value {
+            color: #666666;
+            font-style: italic;
+        }
+        
+        /* JSON styling */
+        .preview-data.json-view .key { color: #9cdcfe; }
+        .preview-data.json-view .string { color: #ce9178; }
+        .preview-data.json-view .number { color: #b5cea8; }
+        .preview-data.json-view .boolean { color: #569cd6; }
+        .preview-data.json-view .null { color: #569cd6; }
+        
+        /* XML styling */
+        .preview-data.xml-view .tag { color: #569cd6; }
+        .preview-data.xml-view .attr { color: #9cdcfe; }
+        .preview-data.xml-view .string { color: #ce9178; }
+        .preview-data.xml-view .content { color: #d4d4d4; }
+        
+        /* CSV styling */
+        .preview-data.csv-view {
+            color: #d4d4d4;
+        }
+
+        /* SQLite Grid View Styling */
+        .sqlite-grid {
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 12px;  /* Smaller font size */
+            background: #1e1e1e;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+        }
+        
+        .grid-header {
+            display: table;
+            table-layout: fixed;
+            width: 100%;
+            background: #252526;
+            border-bottom: 2px solid #2d2d2d;
+        }
+        
+        .grid-body {
+            display: table;
+            table-layout: fixed;
+            width: 100%;
+        }
+        
+        .grid-row {
+            display: table-row;
+            border-bottom: 1px solid #2d2d2d;
+        }
+        
+        .grid-row:hover {
+            background: #2d2d2d;
+        }
+        
+        .grid-cell {
+            display: table-cell;
+            padding: 4px 8px;  /* Reduced padding */
+            border-right: 1px solid #2d2d2d;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            vertical-align: middle;
+            width: auto;
+        }
+        
+        .header-cell {
+            position: relative;
+            background: #252526;
+            color: #cccccc;
+            font-weight: bold;
+            padding: 6px 8px;  /* Slightly more padding for header */
+        }
+        
+        .null-value {
+            color: #666666;
+            font-style: italic;
+        }
+        
+        /* Update preview data container for SQLite */
+        .preview-data.sqlite-view {
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+        }
     </style>
 </head>
 <body>
@@ -194,7 +445,7 @@
         <div id="convert" class="tab active">
             <h2>Convert Data</h2>
             <p class="section-description">Transform structured data between different formats</p>
-            <form id="convertForm">
+            <div class="convert-form">
                 <div class="form-group">
                     <label>Input File:</label>
                     <div class="file-input-group">
@@ -220,8 +471,8 @@
                         <option value="xml">XML</option>
                     </select>
                 </div>
-                <button type="submit">Convert</button>
-            </form>
+                <button onclick="handleConversion(event)" type="button">Convert</button>
+            </div>
             <div id="conversionResult" style="display: none; margin-top: 24px;">
                 <div class="conversion-summary"></div>
             </div>
@@ -230,7 +481,7 @@
         <div id="generate" class="tab">
             <h2>Generate Data</h2>
             <p class="section-description">Create mock data sets based on your defined patterns</p>
-            <form id="generateForm">
+            <div id="generateForm">
                 <div class="form-group">
                     <label>Number of Rows:</label>
                     <input type="number" name="rows" value="100" min="1" required>
@@ -244,8 +495,24 @@
                         <option value="xml">XML</option>
                     </select>
                 </div>
-                <button type="submit">Generate</button>
-            </form>
+                <button type="button" onclick="handleGeneration()">Generate</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- add preview modal -->
+    <div id="previewModal" class="preview-modal">
+        <div class="preview-content">
+            <div class="preview-header">
+                <h3>Preview Converted Data</h3>
+                <span class="preview-close">&times;</span>
+            </div>
+            <pre id="previewData" class="preview-data">
+                <!-- preview content will be inserted here -->
+            </pre>
+            <div class="preview-footer">
+                <button id="finalizeConversion" type="button">Save Conversion</button>
+            </div>
         </div>
     </div>
 
@@ -325,7 +592,9 @@
             }
         }
 
-        async function handleConversion() {
+        async function handleConversion(e) {
+            e.preventDefault();
+            
             const fileInput = document.getElementById('fileInput');
             const outputFormat = document.getElementById('outputFormat').value;
             const file = fileInput.files[0];
@@ -335,23 +604,207 @@
                 return;
             }
 
+            // show loading state
+            const button = e.target;
+            const originalText = button.textContent;
+            button.textContent = 'Generating Preview...';
+            button.disabled = true;
+
             const formData = new FormData();
             formData.append('file', file);
             formData.append('output_format', outputFormat);
 
-            if (file.name.toLowerCase().endsWith('.sqlite')) {
-                const tableSelect = document.getElementById('tableSelect');
-                const selectedTables = Array.from(tableSelect.selectedOptions)
-                    .map(option => option.value);
-                
-                if (selectedTables.length === 0) {
-                    alert('Please select at least one table');
-                    return;
-                }
-                formData.append('table', selectedTables[0]);
+            // add any selected table for SQLite files
+            const tableSelect = document.getElementById('tableSelect');
+            if (tableSelect.style.display !== 'none' && tableSelect.value) {
+                formData.append('table', tableSelect.value);
             }
 
             try {
+                const response = await fetch('/preview', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(await response.text());
+                }
+
+                const result = await response.json();
+                
+                if (result.type === 'preview') {
+                    showPreview(result);
+                } else if (result.type === 'nested_data_warning') {
+                    if (confirm(result.message)) {
+                        formData.append('flatten', 'true');
+                        const retryResponse = await fetch('/preview', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        
+                        if (!retryResponse.ok) {
+                            throw new Error(await retryResponse.text());
+                        }
+                        
+                        const retryResult = await retryResponse.json();
+                        if (retryResult.type === 'preview') {
+                            showPreview(retryResult);
+                        }
+                    }
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            } finally {
+                button.textContent = originalText;
+                button.disabled = false;
+            }
+        }
+
+        let previewData = {
+            tempPath: null,
+            format: null
+        };
+
+        function syntaxHighlight(json) {
+            if (typeof json !== 'string') {
+                json = JSON.stringify(json, null, 2);
+            }
+            return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+                let cls = 'number';
+                if (/^"/.test(match)) {
+                    if (/:$/.test(match)) {
+                        cls = 'key';
+                    } else {
+                        cls = 'string';
+                    }
+                } else if (/true|false/.test(match)) {
+                    cls = 'boolean';
+                } else if (/null/.test(match)) {
+                    cls = 'null';
+                }
+                return '<span class="' + cls + '">' + match + '</span>';
+            });
+        }
+
+        function highlightXml(xml) {
+            return xml.replace(/<(\/?)(\w+)([^>]*?)(\/?)\s*>/g, function(match, close, tag, attrs) {
+                let highlighted = `<span class="tag">&lt;${close || ''}${tag}</span>`;
+                if (attrs) {
+                    highlighted += attrs.replace(/(\w+)="([^"]+)"/g, 
+                        '<span class="attr">$1</span>="<span class="string">$2</span>"');
+                }
+                highlighted += '<span class="tag">&gt;</span>';
+                return highlighted;
+            });
+        }
+
+        function showPreview(result) {
+            previewData.tempPath = result.temp_path;
+            previewData.format = document.getElementById('outputFormat').value;
+            
+            const previewContainer = document.getElementById('previewData');
+            previewContainer.className = `preview-data ${previewData.format}-view`;
+            
+            if (previewData.format === 'sqlite') {
+                previewContainer.innerHTML = result.data;  // use HTML for grid view
+            } else {
+                previewContainer.textContent = result.data;  // use text for other formats
+            }
+            
+            document.getElementById('previewModal').style.display = 'block';
+            // reinitialize dragging each time modal is shown
+            makeDraggable(document.getElementById('previewModal'));
+        }
+
+        function formatSqlitePreview(data) {
+            return data.replace(/&/g, '&amp;')
+                      .replace(/</g, '&lt;')
+                      .replace(/>/g, '&gt;')
+                      .replace(/\n/g, '<br>')
+                      .replace(/\s{2}/g, '&nbsp;&nbsp;');
+        }
+
+        async function loadMoreData() {
+            try {
+                const response = await fetch('/load-more', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        temp_path: previewData.tempPath,
+                        format: previewData.format,
+                        chunk_start: previewData.currentChunk
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(await response.text());
+                }
+
+                const result = await response.json();
+                updatePreviewBody(result.data);
+                
+                previewData.currentChunk += result.data.length;
+                previewData.hasMore = result.has_more;
+                
+                document.getElementById('previewCount').textContent = previewData.currentChunk;
+                document.getElementById('loadMore').style.display = 
+                    result.has_more ? 'block' : 'none';
+                
+            } catch (error) {
+                alert('Error loading more data: ' + error.message);
+            }
+        }
+
+        async function getSaveFilePath(title, defaultName) {
+            const response = await fetch('/save-dialog', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    title: title,
+                    default_name: defaultName
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to get save path');
+            }
+            
+            const result = await response.json();
+            return result.path;
+        }
+
+        async function finalizeConversion() {
+            const fileInput = document.getElementById('fileInput');
+            const outputFormat = document.getElementById('outputFormat').value;
+            const file = fileInput.files[0];
+            
+            const button = document.getElementById('finalizeConversion');
+            button.disabled = true;
+            button.textContent = 'Converting...';
+
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('output_format', outputFormat);
+                
+                // add table selection if SQLite
+                const tableSelect = document.getElementById('tableSelect');
+                if (tableSelect.style.display !== 'none') {
+                    const selectedOptions = Array.from(tableSelect.selectedOptions);
+                    if (selectedOptions.length > 0) {
+                        if (selectedOptions.length === 1) {
+                            formData.append('table', selectedOptions[0].value);
+                        } else {
+                            formData.append('table', '*');
+                        }
+                    }
+                }
+
+                // convert and handle response
                 const response = await fetch('/convert', {
                     method: 'POST',
                     body: formData
@@ -361,22 +814,12 @@
                     throw new Error(await response.text());
                 }
 
-                const jsonResponse = await response.json();
-                
-                if (jsonResponse.type === 'tables') {
-                    // handle SQLite table selection
-                    const select = document.getElementById('tableSelect');
-                    select.innerHTML = jsonResponse.tables
-                        .map(t => `<option value="${t}">${t}</option>`).join('');
-                    document.getElementById('tableSelectionMessage').textContent = 
-                        'Hold Ctrl/Cmd to select multiple tables';
-                    document.getElementById('tableSelection').style.display = 'block';
-                    if (jsonResponse.tables.length > 0) {
-                        select.options[0].selected = true;
-                    }
-                } else if (jsonResponse.type === 'nested_data_warning') {
-                    if (confirm(jsonResponse.message)) {
-                        // retry with flatten=true
+                const result = await response.json();
+                if (result.type === 'success') {
+                    document.getElementById('previewModal').style.display = 'none';
+                    alert('Conversion completed successfully!');
+                } else if (result.type === 'nested_data_warning') {
+                    if (confirm(result.message)) {
                         formData.append('flatten', 'true');
                         const retryResponse = await fetch('/convert', {
                             method: 'POST',
@@ -386,75 +829,144 @@
                         if (!retryResponse.ok) {
                             throw new Error(await retryResponse.text());
                         }
-                        
-                        const result = await retryResponse.json();
-                        if (result.type === 'success') {
-                            alert('Conversion completed successfully with flattening.');
+
+                        const retryResult = await retryResponse.json();
+                        if (retryResult.type === 'success') {
+                            document.getElementById('previewModal').style.display = 'none';
+                            alert('Conversion completed successfully!');
                         }
                     }
-                } else if (jsonResponse.type === 'success') {
-                    displayConversionSummary(jsonResponse);
-                    document.getElementById('conversionResult').style.display = 'block';
                 }
             } catch (error) {
-                alert('Error: ' + error.message);
+                console.error('Conversion error:', error);
+                alert('Error during conversion: ' + error.message);
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Save Conversion';
             }
         }
 
-        function displayConversionSummary(data) {
-            const summary = document.querySelector('.conversion-summary');
-            summary.innerHTML = `
-                <h4>Conversion Complete</h4>
-                <div>Processed in ${formatNumber(data.timing.elapsed_ms)}ms 
-                     (${formatNumber(data.timing.rows_per_second)} rows/sec)</div>
-            `;
-            document.getElementById('conversionResult').style.display = 'block';
-        }
-
-        function formatNumber(num) {
-            return new Intl.NumberFormat().format(
-                typeof num === 'number' ? Math.round(num * 100) / 100 : num
-            );
-        }
-
-        async function handleGeneration(form) {
-            const formData = new FormData(form);
-            const rows = parseInt(formData.get('rows'));
-            const format = formData.get('format');
+        async function handleGeneration() {
+            const form = document.getElementById('generateForm');
+            const rows = parseInt(form.querySelector('[name="rows"]').value);
+            const format = form.querySelector('[name="format"]').value;
 
             if (isNaN(rows) || rows < 1) {
-                throw new Error('Invalid row count');
+                alert('Invalid row count');
+                return;
             }
 
             try {
                 const response = await fetch('/generate', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Content-Type': 'application/json',
                     },
-                    body: `rows=${rows}&format=${format}`
+                    body: JSON.stringify({
+                        rows: rows,
+                        format: format
+                    })
                 });
 
-                if (response.ok) {
-                    const result = await response.text();
-                    alert(result);
-                } else {
+                if (!response.ok) {
                     throw new Error(await response.text());
+                }
+
+                const result = await response.json();
+                if (result.type === 'success') {
+                    alert(result.message);
+                } else if (result.type === 'cancelled') {
+                    console.log('Operation cancelled');
                 }
             } catch (error) {
                 alert('Error: ' + error.message);
             }
         }
 
-        document.getElementById('generateForm').onsubmit = async (e) => {
-            e.preventDefault();
-            await handleGeneration(e.target);
+        // event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelector('.preview-close').onclick = () => {
+                document.getElementById('previewModal').style.display = 'none';
+            };
+
+            const loadMoreBtn = document.getElementById('loadMore');
+            if (loadMoreBtn) {
+                loadMoreBtn.onclick = loadMoreData;
+            }
+
+            const finalizeBtn = document.getElementById('finalizeConversion');
+            if (finalizeBtn) {
+                finalizeBtn.addEventListener('click', finalizeConversion);
+                console.log('Finalize button listener added');
+            }
+
+            // initialize draggable modal
+            makeDraggable(document.getElementById('previewModal'));
+        });
+
+        // close modal if clicking outside
+        window.onclick = (event) => {
+            const modal = document.getElementById('previewModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
         };
 
-        document.getElementById('convertForm').onsubmit = async (e) => {
-            e.preventDefault();
-            await handleConversion();
-        };
+        function makeDraggable(element) {
+            const header = element.querySelector('.preview-header');
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            
+            header.onmousedown = dragMouseDown;
+
+            function dragMouseDown(e) {
+                e.preventDefault();
+                // get mouse position at startup
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+            }
+
+            function elementDrag(e) {
+                e.preventDefault();
+                // calculate new positions
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                
+                let newTop = element.offsetTop - pos2;
+                let newLeft = element.offsetLeft - pos1;
+                
+                // get viewport and element dimensions
+                const viewportHeight = window.innerHeight;
+                const viewportWidth = window.innerWidth;
+                const elementHeight = element.offsetHeight;
+                const elementWidth = element.offsetWidth;
+                
+                // Keep element within bounds
+                //  top boundary (minimum 0)
+                newTop = Math.max(0, newTop);
+                //  left boundary (minimum 0)
+                newLeft = Math.max(0, newLeft);
+                //  bottom boundary (maximum viewport height - element height)
+                newTop = Math.min(viewportHeight - elementHeight, newTop);
+                //  right boundary (maximum viewport width - element width)
+                newLeft = Math.min(viewportWidth - elementWidth, newLeft);
+                
+                //  apply the constrained position
+                element.style.top = newTop + "px";
+                element.style.left = newLeft + "px";
+            }
+
+            function closeDragElement() {
+                document.onmouseup = null;
+                document.onmousemove = null;
+            }
+        }
+
+        // initialize draggable immediately after modal is added to DOM
+        makeDraggable(document.getElementById('previewModal'));
     </script>
 </body>
 </html>

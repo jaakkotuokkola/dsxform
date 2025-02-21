@@ -6,14 +6,12 @@ import ctypes
 import sqlite3
 import logging
 import tempfile
+from io import StringIO
 import argparse
 import mimetypes
-from urllib.parse import parse_qs
 import xml.etree.ElementTree as ET
 from filedialog import get_save_dialog
 from http.server import HTTPServer, BaseHTTPRequestHandler
-from collections import defaultdict
-from datetime import datetime
 
 # This python file is a simple tool for converting data between different formats
 # And for generating mock data based on given regular expressions
@@ -59,17 +57,7 @@ class DataTransformer:
         self.lib.free_ast.restype = None
         self.lib.free_tokens.argtypes = [ctypes.POINTER(Token)]
         self.lib.free_tokens.restype = None
-        self._ensure_temp_folders()
-
-    def _ensure_temp_folders(self):
-        """Ensure temporary folders exist for web interface file handling."""
-        import tempfile
-        self.temp_dir = tempfile.gettempdir()
-        os.makedirs(self.temp_dir, exist_ok=True)
-
-    def get_temp_path(self, filename):
-        """Get a temporary file path."""
-        return os.path.join(self.temp_dir, filename)
+        self.preview_chunk_size = 100
         
     def is_nested(self, data):
         """Check if data contains nested dictionaries or lists."""
@@ -82,11 +70,8 @@ class DataTransformer:
     # Logic for flattening nested data structures
     # Flattens them to 1 level
     # Prefixes child keys with parent key and adds index when needed
-    # note: might be better to let the user edit structures manually with an interface 
-    #       to avoid forcing a specific structure and making the tool useful in more cases
     def flatten_data(self, data):
         """Flatten nested data into a list of flat dictionaries with ordered keys."""
-        # Flatten each item and collect all keys in insertion order
         flattened_items = [self._flatten(item) for item in data]
         all_keys = []
         for item in flattened_items:
@@ -124,8 +109,7 @@ class DataTransformer:
         else:
             flattened[key] = value
 
-    # Functions for reading and writing data in different formats
-    # I will expect usual structured data
+    # Functions for reading and writing data sets in different formats
 
     def read_csv(self, csv_path):
         """Read CSV and return its data as a list of dictionaries."""
@@ -298,39 +282,39 @@ class DataTransformer:
         """Write data to XML, preserving original structure and order."""
         def build_xml(element, value):
             if isinstance(value, dict):
-                # Process dictionary items in original order
+                # process dictionary items in original order
                 for k, v in value.items():
-                    # Skip null values but allow 0/False
+                    # skip null values but allow 0/False
                     if v is not None and (v or isinstance(v, (bool, int, float))):
                         child = ET.SubElement(element, k)
                         build_xml(child, v)
             elif isinstance(value, list):
-                # For arrays, maintain the same tag for all items
+                # for arrays, maintain the same tag for all items
                 for item in value:
-                    # For primitive arrays, create direct items
+                    # for primitive arrays, create direct items
                     if isinstance(item, (str, int, float, bool)):
                         child = ET.SubElement(element, 'item')
                         child.text = str(item)
                     else:
-                        # For object arrays, keep the parent tag's structure
+                        # for object arrays, keep the parent tag's structure
                         child = ET.SubElement(element, 'item')
                         build_xml(child, item)
             else:
-                # Handle primitive values
+                # handle primitive values
                 element.text = str(value) if value is not None else ''
 
         try:
             root = ET.Element("root")
             if isinstance(data, list):
-                # For list input, wrap each item in a record element
+                # for list input, wrap each item in a record element
                 for record in data:
                     record_elem = ET.SubElement(root, "record")
                     build_xml(record_elem, record)
             else:
-                # For single record input
+                # for single record input
                 build_xml(root, data)
 
-            # Format the XML with proper indentation
+            # format the XML with proper indentation
             def indent(elem, level=0):
                 i = "\n" + level * "  "
                 if len(elem):
@@ -348,10 +332,10 @@ class DataTransformer:
 
             indent(root)
             tree = ET.ElementTree(root)
-            # Use UTF-8 encoding and add XML declaration
+            # use UTF-8 encoding and add XML declaration
             tree.write(xml_path, encoding='utf-8', xml_declaration=True)
             
-            # Add final newline
+            # add final newline
             with open(xml_path, 'a') as f:
                 f.write('\n')
 
@@ -430,10 +414,10 @@ class DataTransformer:
         start_time = time.time()
 
         try:
-            # Read input data
+            # read input data
             input_data = self._read_input(input_path, input_format, table)
             
-            # Handle multiple tables from SQLite
+            # handle tables from SQLite, currently allows choosing multiple in the UI(probably not needed)
             if isinstance(input_data, dict):
                 base_path = os.path.splitext(output_path)[0]
                 for table_name, table_data in input_data.items():
@@ -450,7 +434,7 @@ class DataTransformer:
                     }
                 }
             
-            # Check for nested data in structured formats
+            # check for nested data in input if output is a flat format
             if isinstance(input_data, list) and input_data and output_format in ['csv', 'sqlite']:
                 if self.is_nested(input_data):
                     if flatten:
@@ -461,7 +445,7 @@ class DataTransformer:
                             'message': 'Nested data detected. Would you like to flatten it?'
                         }
             
-            # Write output
+            # write output
             self._write_output(input_data, output_path, output_format)
             
             elapsed_time = (time.time() - start_time) * 1000
@@ -482,7 +466,7 @@ class DataTransformer:
             raise
 
     def _write_output(self, data, output_path, output_format, flatten=False):
-        """Helper method to write output in specified format."""
+        """Write output in specified format."""
         # check for nested structures in formats that may use them
         nest_formats = ['json', 'xml']
         structured_formats = ['csv', 'sqlite']
@@ -505,6 +489,240 @@ class DataTransformer:
             self.write_xml(data, output_path)
         else:
             raise ValueError(f"Unsupported output format: {output_format}")
+
+    def preview_convert(self, input_path, output_format, table=None, flatten=False, limit=1000):
+        """Generate a small output preview using the actual conversion logic but in memory."""
+        try:
+            input_format = os.path.splitext(input_path)[1][1:]
+            
+            # only read the data needed for preview
+            if input_format == 'csv':
+                with open(input_path, 'r') as f:
+                    reader = csv.DictReader(f)
+                    data = []
+                    for i, row in enumerate(reader):
+                        if i >= limit:
+                            break
+                        data.append(row)
+            elif input_format == 'json':
+                with open(input_path, 'r') as f:
+                    try:
+                        # first attempt to parse as array of objects
+                        all_data = json.load(f)
+                        if isinstance(all_data, list):
+                            data = all_data[:limit]
+                        else:
+                            data = [all_data]
+                    except json.JSONDecodeError:
+                        # if that fails, try parsing line by line
+                        f.seek(0)
+                        data = []
+                        current_obj = []
+                        in_object = False
+                        count = 0
+                        
+                        for line in f:
+                            if not in_object and '{' in line:
+                                in_object = True
+                                current_obj = [line]
+                            elif in_object:
+                                current_obj.append(line)
+                                if '}' in line:
+                                    in_object = False
+                                    try:
+                                        obj = json.loads(''.join(current_obj))
+                                        data.append(obj)
+                                        count += 1
+                                        if count >= limit:
+                                            break
+                                    except json.JSONDecodeError:
+                                        continue
+            elif input_format == 'sqlite':
+                conn = sqlite3.connect(input_path)
+                cursor = conn.cursor()
+                cursor.execute(f'SELECT * FROM {table} LIMIT {limit}')
+                headers = [desc[0] for desc in cursor.description]
+                data = [dict(zip(headers, row)) for row in cursor.fetchall()]
+                conn.close()
+            elif input_format == 'xml':
+                tree = ET.parse(input_path)
+                root = tree.getroot()
+                data = []
+                for i, record in enumerate(root.findall('.//record')):
+                    if i >= limit:
+                        break
+                    data.append(self._xml_to_dict(record))
+
+            # flatten preview if needed
+            if output_format in ['csv', 'sqlite'] and self.is_nested(data):
+                if flatten:
+                    data = self.flatten_data(data)
+                else:
+                    return {
+                        "type": "nested_data_warning",
+                        "message": "Nested data detected. Would you like to flatten it?"
+                    }
+
+            # format preview based on output format
+            if output_format == 'csv':
+                output = StringIO()
+                if data:
+                    writer = csv.DictWriter(output, fieldnames=data[0].keys())
+                    writer.writeheader()
+                    writer.writerows(data)
+                preview_content = output.getvalue()
+            elif output_format == 'json':
+                preview_content = json.dumps(data, indent=2)
+            elif output_format == 'xml':
+                root = ET.Element("root")
+                for record in data:
+                    record_elem = ET.SubElement(root, "record")
+                    self._dict_to_xml(record, record_elem)
+                self._indent_xml(root)
+                preview_content = ET.tostring(root, encoding='unicode')
+            elif output_format == 'sqlite':
+                preview_content = self._create_grid_view(data)
+
+            return {
+                "type": "preview",
+                "data": preview_content,
+                "format": output_format,
+                "total_preview_rows": len(data)
+            }
+
+        except Exception as e:
+            logging.error(f"Preview conversion failed: {str(e)}")
+            raise
+
+    def _indent_xml(self, elem, level=0):
+        """Add proper indentation to XML elements with consistent formatting."""
+        indent = "  " * level
+        if len(elem):
+            # initial text indentation
+            if not elem.text or not elem.text.strip():
+                elem.text = "\n" + indent + "  "
+            elif elem.text.strip():
+                # if there's content, indent after the content
+                elem.text = elem.text.strip() + "\n" + indent + "  "
+
+            # handle all subelements
+            last_elem = None
+            for subelem in elem:
+                self._indent_xml(subelem, level + 1)
+                if last_elem is not None:
+                    # set tail for the previous element
+                    last_elem.tail = "\n" + indent + "  "
+                last_elem = subelem
+
+            # handle the last element's tail
+            if last_elem is not None:
+                last_elem.tail = "\n" + indent
+
+            # set this element's tail
+            if elem.tail and elem.tail.strip():
+                elem.tail = elem.tail.strip() + "\n" + ("  " * (level - 1))
+            else:
+                elem.tail = "\n" + ("  " * (level - 1))
+        else:
+            # for elements without children
+            if elem.text and elem.text.strip():
+                elem.text = elem.text.strip()
+            if elem.tail and elem.tail.strip():
+                elem.tail = elem.tail.strip() + "\n" + indent
+            else:
+                elem.tail = "\n" + indent
+
+    # previews are styled properly for each format
+    def _create_grid_view(self, data):
+        """Create HTML grid view for SQLite preview."""
+        if not data:
+            return "<div class='sqlite-grid'>No data to preview</div>"
+
+        preview = ['<div class="sqlite-grid">']
+        
+        headers = list(data[0].keys())
+        preview.append('<div class="grid-header">')
+        for header in headers:
+            preview.append(f'<div class="grid-cell header-cell">{header}</div>')
+        preview.append('</div>')
+        
+        preview.append('<div class="grid-body">')
+        for row in data:
+            preview.append('<div class="grid-row">')
+            for header in headers:
+                value = row.get(header)
+                if value is None:
+                    cell = '<span class="null-value">NULL</span>'
+                else:
+                    cell = str(value).replace('<', '&lt;').replace('>', '&gt;')
+                preview.append(f'<div class="grid-cell">{cell}</div>')
+            preview.append('</div>')
+        preview.append('</div></div>')
+        
+        return ''.join(preview)
+
+    def _dict_to_xml(self, data, element):
+        """Convert dictionary to XML elements for preview."""
+        if isinstance(data, dict):
+            for key, value in data.items():
+                child = ET.SubElement(element, str(key))
+                if isinstance(value, (dict, list)):
+                    self._dict_to_xml(value, child)
+                else:
+                    child.text = str(value) if value is not None else ''
+        elif isinstance(data, list):
+            for item in data:
+                child = ET.SubElement(element, 'item')
+                if isinstance(item, (dict, list)):
+                    self._dict_to_xml(item, child)
+                else:
+                    child.text = str(item) if item is not None else ''
+        else:
+            element.text = str(data) if data is not None else ''
+
+    def _xml_to_dict(self, element):
+        """Convert XML element to dictionary for preview."""
+        result = {}
+        for child in element:
+            if len(child) > 0:
+                # has children
+                if child.tag in result:
+                    if not isinstance(result[child.tag], list):
+                        result[child.tag] = [result[child.tag]]
+                    result[child.tag].append(self._xml_to_dict(child))
+                else:
+                    result[child.tag] = self._xml_to_dict(child)
+            else:
+                # no children
+                if child.tag in result:
+                    if not isinstance(result[child.tag], list):
+                        result[child.tag] = [result[child.tag]]
+                    result[child.tag].append(child.text or '')
+                else:
+                    result[child.tag] = child.text or ''
+        return result
+
+    def handle_save_dialog(self):
+        """Handle file dialog request."""
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length).decode('utf-8')
+            data = json.loads(body)
+            
+            title = data.get('title', 'Save File')
+            default_name = data.get('default_name', '')
+            
+            file_path = get_save_dialog(title=title, default_name=default_name)
+            
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({
+                'path': file_path if file_path else None
+            }).encode())
+            
+        except Exception as e:
+            self.send_error(500, str(e))
 
 class NestedDataWarning(Warning):
     pass
@@ -675,6 +893,12 @@ class DataTransformerHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         if self.path == '/convert':
             self.handle_convert()
+        elif self.path == '/preview':
+            self.handle_preview()
+        elif self.path == '/load-more':
+            self.handle_load_more()
+        elif self.path == '/finalize':
+            self.handle_finalize()
         elif self.path == '/generate':
             self.handle_generate()
         else:
@@ -782,53 +1006,137 @@ class DataTransformerHandler(BaseHTTPRequestHandler):
         except Exception as e:
             self.send_error(500, str(e))
 
-    def handle_generate(self):
+    def handle_preview(self):
+        """Handle preview request and return converted data preview."""
         try:
-            # form data needs to be parsed
-            content_length = int(self.headers.get('Content-Length', 0))
-            post_data = self.rfile.read(content_length).decode('utf-8')
-            form_data = parse_qs(post_data)
-
-            # get row count and format
-            try:
-                rows = int(form_data.get('rows', ['100'])[0])
-                if rows < 1:
-                    raise ValueError("Row count must be positive")
-            except ValueError:
-                self.send_error(400, "Invalid row count")
+            content_type = self.headers.get('Content-Type', '')
+            if not content_type.startswith('multipart/form-data'):
+                self.send_error(400, 'Expected multipart/form-data')
                 return
 
-            selected_format = form_data.get('format', ['csv'])[0]
-            if selected_format not in ALLOWED_EXTENSIONS:
-                self.send_error(400, "Invalid format")
-                return
-
-            # ask user for save location using native file dialog of the OS
-            default_ext = f'.{selected_format}'
-            output_path = get_save_dialog(
-                title="Save Generated Data",
-                default_name=f"generated.{selected_format}"
-            )
+            # Parse form data
+            boundary = content_type.split('boundary=')[1].strip()
+            environ = {
+                'boundary': boundary,
+                'content-length': self.headers.get('Content-Length', 0),
+                'wsgi.input': self.rfile
+            }
             
-            if not output_path:  # user cancelled
-                self.send_error(400, "Operation cancelled")
+            form = MultipartFormParser(environ)
+            file_data = form.getfile('file')
+            
+            if not file_data:
+                self.send_error(400, 'No file provided')
                 return
 
-            # extract format from actual file path
-            output_format = output_path.rsplit('.', 1)[1].lower()
-            if output_format not in ALLOWED_EXTENSIONS:
-                self.send_error(400, "Invalid output format")
+            filename = file_data['filename']
+            if not filename:
+                self.send_error(400, 'No file selected')
                 return
 
-            # generate data
-            self.transformer.generate_data(rows, output_path, output_format)
+            output_format = form.getvalue('output_format')
+            if not output_format:
+                self.send_error(400, 'No output format specified')
+                return
 
-            self.send_response(200)
-            self.end_headers()
-            self.wfile.write(f"Generated {rows} rows of data in {output_format} format!".encode())
+            # Save uploaded file temporarily
+            input_path = os.path.join(UPLOAD_FOLDER, filename)
+            with open(input_path, 'wb') as f:
+                f.write(file_data['content'])
 
+            try:
+                input_format = filename.rsplit('.', 1)[1].lower()
+                flatten = form.getvalue('flatten') == 'true'
+                table_name = form.getvalue('table')
+
+                # Special handling for SQLite tables
+                if input_format == 'sqlite' and not table_name:
+                    tables = self.transformer.list_sqlite_tables(input_path)
+                    if not tables:
+                        self.send_error(400, "No tables found in SQLite database")
+                        return
+                    table_name = tables[0]  # Use first table for preview
+
+                # Get preview
+                preview_result = self.transformer.preview_convert(
+                    input_path, output_format, table=table_name, flatten=flatten
+                )
+                
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps(preview_result).encode())
+
+            finally:
+                if os.path.exists(input_path):
+                    os.unlink(input_path)
+        
         except Exception as e:
             self.send_error(500, str(e))
+            logging.error(f"Preview error: {str(e)}")
+
+    def handle_save_dialog(self):
+        """Handle save file dialog request."""
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length).decode('utf-8')
+            data = json.loads(body)
+            
+            title = data.get('title', 'Save File')
+            default_name = data.get('default_name', '')
+            
+            file_path = get_save_dialog(title=title, default_name=default_name)
+            
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({
+                'path': file_path if file_path else None
+            }).encode())
+            
+        except Exception as e:
+            self.send_error(500, str(e))
+
+    def handle_generate(self):
+        """Handle data generation request."""
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length).decode('utf-8')
+            data = json.loads(body)
+            
+            rows = data.get('rows', 100)
+            output_format = data.get('format')
+            
+            # Get save path using file dialog
+            output_path = get_save_dialog(
+                title="Save Generated Data",
+                default_name=f"generated_data.{output_format}"
+            )
+            
+            if not output_path:  # User cancelled dialog
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "type": "cancelled",
+                    "message": "Operation cancelled by user"
+                }).encode())
+                return
+
+            # Generate data
+            self.transformer.generate_data(rows, output_path, output_format)
+            
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({
+                "type": "success",
+                "message": f"Successfully generated {rows} rows of data"
+            }).encode())
+            
+        except Exception as e:
+            self.send_error(500, str(e))
+            logging.error(f"Generation error: {str(e)}")
 
 def run_server(port=8000):
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
