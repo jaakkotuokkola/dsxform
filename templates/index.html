@@ -513,13 +513,6 @@
             event.target.classList.add('active');
         }
 
-        function validateRows(input) {
-            const value = parseInt(input.value);
-            if (value < 1) {
-                input.value = 1;
-            }
-        }
-
         let selectedTable = null;
 
         document.getElementById('fileInput').addEventListener('change', async function(e) {
@@ -650,39 +643,6 @@
             format: null
         };
 
-        function syntaxHighlight(json) {
-            if (typeof json !== 'string') {
-                json = JSON.stringify(json, null, 2);
-            }
-            return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
-                let cls = 'number';
-                if (/^"/.test(match)) {
-                    if (/:$/.test(match)) {
-                        cls = 'key';
-                    } else {
-                        cls = 'string';
-                    }
-                } else if (/true|false/.test(match)) {
-                    cls = 'boolean';
-                } else if (/null/.test(match)) {
-                    cls = 'null';
-                }
-                return '<span class="' + cls + '">' + match + '</span>';
-            });
-        }
-
-        function highlightXml(xml) {
-            return xml.replace(/<(\/?)(\w+)([^>]*?)(\/?)\s*>/g, function(match, close, tag, attrs) {
-                let highlighted = `<span class="tag">&lt;${close || ''}${tag}</span>`;
-                if (attrs) {
-                    highlighted += attrs.replace(/(\w+)="([^"]+)"/g, 
-                        '<span class="attr">$1</span>="<span class="string">$2</span>"');
-                }
-                highlighted += '<span class="tag">&gt;</span>';
-                return highlighted;
-            });
-        }
-
         function showPreview(result) {
             previewData.tempPath = result.temp_path;
             previewData.format = document.getElementById('outputFormat').value;
@@ -699,47 +659,6 @@
             document.getElementById('previewModal').style.display = 'block';
             // reinitialize dragging each time modal is shown
             makeDraggable(document.getElementById('previewModal'));
-        }
-
-        function formatSqlitePreview(data) {
-            return data.replace(/&/g, '&amp;')
-                      .replace(/</g, '&lt;')
-                      .replace(/>/g, '&gt;')
-                      .replace(/\n/g, '<br>')
-                      .replace(/\s{2}/g, '&nbsp;&nbsp;');
-        }
-
-        async function loadMoreData() {
-            try {
-                const response = await fetch('/load-more', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        temp_path: previewData.tempPath,
-                        format: previewData.format,
-                        chunk_start: previewData.currentChunk
-                    })
-                });
-
-                if (!response.ok) {
-                    throw new Error(await response.text());
-                }
-
-                const result = await response.json();
-                updatePreviewBody(result.data);
-                
-                previewData.currentChunk += result.data.length;
-                previewData.hasMore = result.has_more;
-                
-                document.getElementById('previewCount').textContent = previewData.currentChunk;
-                document.getElementById('loadMore').style.display = 
-                    result.has_more ? 'block' : 'none';
-                
-            } catch (error) {
-                alert('Error loading more data: ' + error.message);
-            }
         }
 
         async function getSaveFilePath(title, defaultName) {

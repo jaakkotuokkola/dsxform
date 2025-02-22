@@ -57,7 +57,6 @@ class DataTransformer:
         self.lib.free_ast.restype = None
         self.lib.free_tokens.argtypes = [ctypes.POINTER(Token)]
         self.lib.free_tokens.restype = None
-        self.preview_chunk_size = 100
         
     def is_nested(self, data):
         """Check if data contains nested dictionaries or lists."""
