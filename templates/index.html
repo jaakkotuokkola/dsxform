@@ -4,13 +4,16 @@
     <title>dsxform</title>
     <style>
         :root {
-            --primary-color: #3a5a40;
-            --primary-hover: #588157;
-            --bg-color: #fff;
-            --surface-color: #f8f9fa;
-            --border-color: #dee2e6;
-            --text-color: #212529;
-            --text-muted: #6c757d;
+            --primary-color: #2b4c3a;
+            --primary-hover: #3a6548;
+            --bg-color: #ffffff;
+            --surface-color: #f0f2f5;
+            --border-color: #cfd4da;
+            --text-color: #1a1a1a;
+            --text-muted: #5a6572;
+            --focus-ring: rgba(43, 76, 58, 0.25);
+            --error-color: #dc3545;
+            --success-color: #28a745;
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -19,7 +22,13 @@
             background-color: var(--bg-color);
             color: var(--text-color);
             display: flex;
+            flex-direction: column;
             min-height: 100vh;
+        }
+
+        .main-wrapper {
+            display: flex;
+            flex: 1;
         }
         .sidebar {
             width: 200px;
@@ -48,14 +57,14 @@
             color: var(--text-color);
             cursor: pointer;
             font-size: 15px;
-            transition: all 0.2s ease;
+            transition: background-color 0.2s ease;
             border-left: 3px solid transparent;
         }
         .tab-buttons button:hover {
-            background-color: rgba(0, 0, 0, 0.05);
+            background-color: rgba(43, 76, 58, 0.08);
         }
         .tab-buttons button.active {
-            background-color: rgba(58, 90, 64, 0.1);
+            background-color: rgba(43, 76, 58, 0.15);
             border-left: 3px solid var(--primary-color);
             color: var(--primary-color);
             font-weight: 500;
@@ -99,7 +108,7 @@
         select:focus {
             outline: none;
             border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(58, 90, 64, 0.1);
+            box-shadow: 0 0 0 3px var(--focus-ring);
         }
         input[type="file"] {
             padding: 8px;
@@ -118,7 +127,8 @@
         input[type="file"]::-webkit-file-upload-button:hover {
             background: var (--primary-hover);
         }
-        button[type="submit"] {
+        button[type="submit"],
+        button[type="button"] {
             background-color: var(--primary-color);
             color: white;
             padding: 12px 24px;
@@ -130,8 +140,21 @@
             transition: all 0.2s ease;
             width: 100%;
         }
-        button[type="submit"]:hover {
+        button[type="submit"]:hover,
+        button[type="button"]:hover {
             background-color: var(--primary-hover);
+        }
+
+        button[type="submit"]:active,
+        button[type="button"]:active {
+            background-color: var(--primary-hover);
+        }
+
+        button[type="submit"]:disabled,
+        button[type="button"]:disabled {
+            background-color: var(--text-muted);
+            cursor: not-allowed;
+            transform: none;
         }
         #tableSelection {
             display: none;
@@ -187,7 +210,7 @@
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
             z-index: 1000;
             resize: both;
-            overflow: auto;  /* Change to auto */
+            overflow: auto;
             top: 20%;
             left: 20%;
             width: 60%;
@@ -195,14 +218,14 @@
             min-width: 400px;
             min-height: 300px;
             transform: none;
-            padding: 20px;  /* Move padding from content to modal */
+            padding: 20px;
         }
         
         .preview-content {
-            position: relative;  /* Change from absolute to relative */
+            position: relative;
             display: flex;
             flex-direction: column;
-            height: 100%;  /* Fill available height */
+            height: 100%;
             overflow: hidden;
         }
         
@@ -237,7 +260,7 @@
             overflow: auto;
             border: 1px solid #2d2d2d;
             border-radius: 4px;
-            background: #1e1e1e;  /* Dark theme for all formats */
+            background: #1e1e1e; /* Dark background in output preview*/
             color: #d4d4d4;
             padding: 20px;
             font-family: 'JetBrains Mono', 'Fira Code', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
@@ -293,6 +316,8 @@
             background-color: var(--primary-hover);
         }
 
+        /*note: some of the preview styling is not used in the current version*/
+        /* none of the detailed color schemes are used in the current previews */
         /* Syntax highlighting for JSON/XML */
         .string { color: #22863a; }
         .number { color: #005cc5; }
@@ -315,7 +340,7 @@
         }
         
         .sqlite-table .schema {
-            color: #569cd6;  /* Blue for schema keywords */
+            color: #569cd6;
             padding: 12px 16px;
             border-bottom: 1px solid #2d2d2d;
         }
@@ -415,72 +440,98 @@
             position: sticky;
             top: 0;
         }
+
+        .footer {
+            background-color: var(--surface-color);
+            border-top: 1px solid var(--border-color);
+            padding: 24px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-top: auto;
+        }
+
+        .error {
+            border-color: var(--error-color) !important;
+            box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.25) !important;
+        }
+
+        .success {
+            border-color: var(--success-color) !important;
+            box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.25) !important;
+        }
     </style>
 </head>
 <body>
-    <div class="sidebar">
-        <div class="logo">dsxform</div>
-        <div class="tab-buttons">
-            <button onclick="showTab('convert')" class="active">Convert data</button>
-            <button onclick="showTab('generate')">Generate mock data</button>
-        </div>
-    </div>
-
-    <div class="main-content">
-        <div id="convert" class="tab active">
-            <h2>Convert Data</h2>
-            <p class="section-description">Transform structured data between different formats</p>
-            <div class="convert-form">
-                <div class="form-group">
-                    <label>Input File:</label>
-                    <div class="file-input-group">
-                        <input type="file" name="file" id="fileInput" required>
-                    </div>
-                </div>
-                <div id="tableSelection" class="form-group">
-                    <label>Select Tables:</label>
-                    <p id="tableSelectionMessage" style="margin: 5px 0; font-size: 0.9em; color: #666;"></p>
-                    <select id="tableSelect" name="table" multiple>
-                    </select>
-                    <div class="table-actions">
-                        <a onclick="selectAllTables()">Select All</a>
-                        <a onclick="deselectAllTables()">Deselect All</a>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Convert To:</label>
-                    <select name="output_format" id="outputFormat" required>
-                        <option value="csv">CSV</option>
-                        <option value="json">JSON</option>
-                        <option value="sqlite">SQLite</option>
-                        <option value="xml">XML</option>
-                    </select>
-                </div>
-                <button onclick="handleConversion(event)" type="button">Convert</button>
-            </div>
-            <div id="conversionResult" style="display: none; margin-top: 24px;">
-                <div class="conversion-summary"></div>
+    <div class="main-wrapper">
+        <div class="sidebar">
+            <div class="logo">dsxform</div>
+            <div class="tab-buttons">
+                <button onclick="showTab('convert')" class="active">Convert data</button>
+                <button onclick="showTab('generate')">Generate mock data</button>
             </div>
         </div>
 
-        <div id="generate" class="tab">
-            <h2>Generate Data</h2>
-            <p class="section-description">Create mock data sets based on your defined patterns</p>
-            <div id="generateForm">
-                <div class="form-group">
-                    <label>Number of Rows:</label>
-                    <input type="number" name="rows" value="100" min="1" required>
+        <div class="main-content">
+            <div id="convert" class="tab active">
+                <h2>Convert Data</h2>
+                <p class="section-description">Transform structured data between different formats</p>
+                <div class="convert-form">
+                    <div class="form-group">
+                        <label>Input File:</label>
+                        <div class="file-input-group">
+                            <input type="file" 
+                                   name="file" 
+                                   id="fileInput" 
+                                   accept=".csv,.json,.sqlite,.xml"
+                                   required>
+                        </div>
+                    </div>
+                    <div id="tableSelection" class="form-group">
+                        <label>Select Tables:</label>
+                        <p id="tableSelectionMessage" style="margin: 5px 0; font-size: 0.9em; color: #666;"></p>
+                        <select id="tableSelect" name="table" multiple>
+                        </select>
+                        <div class="table-actions">
+                            <a onclick="selectAllTables()">Select All</a>
+                            <a onclick="deselectAllTables()">Deselect All</a>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Convert To:</label>
+                        <select name="output_format" id="outputFormat" required>
+                            <option value="csv">CSV</option>
+                            <option value="json">JSON</option>
+                            <option value="sqlite">SQLite</option>
+                            <option value="xml">XML</option>
+                        </select>
+                    </div>
+                    <button onclick="handleConversion(event)" type="button">Convert</button>
                 </div>
-                <div class="form-group">
-                    <label>Output Format:</label>
-                    <select name="format" required>
-                        <option value="csv">CSV</option>
-                        <option value="json">JSON</option>
-                        <option value="sqlite">SQLite</option>
-                        <option value="xml">XML</option>
-                    </select>
+                <div id="conversionResult" style="display: none; margin-top: 24px;">
+                    <div class="conversion-summary"></div>
                 </div>
-                <button type="button" onclick="handleGeneration()">Generate</button>
+            </div>
+
+            <div id="generate" class="tab">
+                <h2>Generate Data</h2>
+                <p class="section-description">Create mock data sets based on your defined patterns</p>
+                <div id="generateForm">
+                    <div class="form-group">
+                        <label>Number of Rows:</label>
+                        <input type="number" name="rows" value="100" min="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Output Format:</label>
+                        <select name="format" required>
+                            <option value="csv">CSV</option>
+                            <option value="json">JSON</option>
+                            <option value="sqlite">SQLite</option>
+                            <option value="xml">XML</option>
+                        </select>
+                    </div>
+                    <button type="button" onclick="handleGeneration()">Generate</button>
+                </div>
             </div>
         </div>
     </div>
@@ -500,6 +551,10 @@
             </div>
         </div>
     </div>
+
+    <footer class="footer">
+        <!-- Footer content -->
+    </footer>
 
     <script>
         function showTab(tabId) {
@@ -523,7 +578,17 @@
             
             if (!file) return;
 
-            if (file.name.toLowerCase().endsWith('.sqlite')) {
+            // Check if file extension is supported
+            const extension = file.name.toLowerCase().split('.').pop();
+            const supportedFormats = ['csv', 'json', 'sqlite', 'xml'];
+            
+            if (!supportedFormats.includes(extension)) {
+                alert('Unsupported file format. Please select a CSV, JSON, SQLite, or XML file.');
+                this.value = ''; // Clear the file input
+                return;
+            }
+
+            if (extension === 'sqlite') {
                 const formData = new FormData();
                 formData.append('file', file);
                 formData.append('output_format', 'sqlite');
