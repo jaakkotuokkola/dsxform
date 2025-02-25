@@ -7,3 +7,7 @@ __pycache__/
 .pytest_cache/
 test_output/
 alltestgenconfig.json
+example.json
+example.csv
+example.sqlite
+exmaple.xml
