@@ -677,7 +677,7 @@
                 
                 if (result.type === 'preview') {
                     showPreview(result);
-                } else if (result.type === 'nested_data_warning') {
+                } else if (result.type === 'semi_data_warning') {
                     if (confirm(result.message)) {
                         formData.append('flatten', 'true');
                         const retryResponse = await fetch('/preview', {
@@ -787,7 +787,7 @@
                 if (result.type === 'success') {
                     document.getElementById('previewModal').style.display = 'none';
                     alert('Conversion completed successfully!');
-                } else if (result.type === 'nested_data_warning') {
+                } else if (result.type === 'semi_data_warning') {
                     if (confirm(result.message)) {
                         formData.append('flatten', 'true');
                         const retryResponse = await fetch('/convert', {

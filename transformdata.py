@@ -58,19 +58,32 @@ class DataTransformer:
         self.lib.free_tokens.argtypes = [ctypes.POINTER(Token)]
         self.lib.free_tokens.restype = None
         
-    def is_nested(self, data):
-        """Check if data contains nested dictionaries or lists."""
+    def is_semiStruct(self, data):
+        """Check if data is semi-structured (has nested elements or irregular record structures)."""
+        if not data:
+            return False
+            
+        # Get keys from first record to compare against
+        reference_keys = set(data[0].keys())
+        
         for item in data:
+            # Check for structural irregularity
+            if set(item.keys()) != reference_keys:
+                return True
+                
+            # Check for nested structures
             for value in item.values():
                 if isinstance(value, (dict, list)):
                     return True
+        
         return False
     
-    # Logic for flattening nested data structures
-    # Flattens them to 1 level
-    # Prefixes child keys with parent key and adds index when needed
+    # Logic for flattening semi-structured (nested or irregularly structured) data from JSON/XML.
+    # JSON -> XML we of course try to preserve the structure as much as possible, since both can be semi-structured.
+    # Essentially the structures are flattened so that every key is now represented in every record.
+    # For nests, the parent key is prepended to the child key, and for arrays, the index is appended.
     def flatten_data(self, data):
-        """Flatten nested data into a list of flat dictionaries with ordered keys."""
+        """Flatten semi-structured data into a structured format."""
         flattened_items = [self._flatten(item) for item in data]
         all_keys = []
         for item in flattened_items:
@@ -81,15 +94,17 @@ class DataTransformer:
             {key: item.get(key, None) for key in all_keys}
             for item in flattened_items
         ]
-
+    
     def _flatten(self, item, parent_key=''):
-        """Recursively flatten nested structures, preserving hierarchy in keys."""
+        """Recursively flatten semi-structured data."""
         flattened = {}
         for key, value in item.items():
             new_key = f"{parent_key}_{key}" if parent_key else key
             self._flatten_value(new_key, value, flattened)
         return flattened
-
+    
+    # note: some of these functions needed some testing still, xml -> json had some small issues
+            #note: check json and xml both ways
     def _flatten_value(self, key, value, flattened):
         """Standardize flattening for both JSON and XML sources."""
         if isinstance(value, dict):
@@ -109,7 +124,9 @@ class DataTransformer:
             flattened[key] = value
 
     # Functions for reading and writing data sets in different formats
-
+    # Some of these functions could be rewritten from scratch, maybe in C for better performance
+    #  Atleast json and csv seemed to gain significant speedups from prototype C implementations
+    #    for now will keep them in Python due to time constraints
     def read_csv(self, csv_path):
         """Read CSV and return its data as a list of dictionaries."""
         try:
@@ -150,6 +167,7 @@ class DataTransformer:
         except IOError:
             raise ValueError(f"Unable to write to file: {json_path}")
 
+    # listing tables to choose from in SQLite input files
     def list_sqlite_tables(self, db_path):
         """List all tables in a SQLite database."""
         try:
@@ -209,44 +227,46 @@ class DataTransformer:
         finally:
             conn.close()
 
+        # xml operations seem to be a bit more difficult and take more time to compute in conversion and generation
+        #  not sure why,
+        # note: ensure semi-structured data for XML is handled properly
     def read_xml(self, xml_path):
-        """Read XML preserving nested structures consistently with JSON."""
+        """Read XML"""
         def parse_element(elem):
-            """Recursively parse XML element into Python data structure."""
+            """Recursively parse XML element"""
+        # special handling for array items
+            if elem.tag == 'item':
+        # if item has children, parse as object
+                if len(elem) > 0:
+                    return parse_element_content(elem)
+        # otherwise treat as primitive value
+                return elem.text or ''
+            
+            return parse_element_content(elem)
+            
+        def parse_element_content(elem):
+            """Parse the actual content of an element."""
             result = {}
             
-            # group items by their tag to detect arrays
+            # group by tag to detect arrays
             tag_groups = {}
             for child in elem:
                 if child.tag not in tag_groups:
                     tag_groups[child.tag] = []
                 tag_groups[child.tag].append(child)
             
-            # process each group of elements
             for tag, children in tag_groups.items():
-                # skip empty elements
                 if len(children) == 0:
                     continue
-
-                # if we have multiple items or this is an array container
-                if len(children) > 1 or any(c.tag == 'item' for c in children):
+                    
+                # multiple elements with same tag -> array
+                if len(children) > 1 or tag == 'item':
                     items = []
-                    # process each child in the group
                     for child in children:
-                        if child.tag == 'item':
-                            # handle item elements
-                            if len(child) > 0:
-                                # complex item with children
-                                items.append(parse_element(child))
-                            else:
-                                # simple item (primitive value)
-                                items.append(child.text or '')
+                        if len(child) > 0:
+                            items.append(parse_element(child))
                         else:
-                            # handle non-item array elements
-                            if len(child) > 0:
-                                items.append(parse_element(child))
-                            else:
-                                items.append(child.text or '')
+                            items.append(child.text or '')
                     result[tag] = items
                 else:
                     # single element
@@ -262,15 +282,13 @@ class DataTransformer:
             tree = ET.parse(xml_path)
             root = tree.getroot()
             
+            # handle root record list
             if root.tag == 'root':
-                # handle standard format with record elements
                 records = []
                 for record in root.findall('record'):
-                    records.append(parse_element(record))
+                    records.append(parse_element_content(record))
                 return records
-            else:
-                # handle single record or custom format
-                return [parse_element(root)]
+            return [parse_element_content(root)]
                 
         except FileNotFoundError:
             raise ValueError(f"Input file not found: {xml_path}")
@@ -433,15 +451,15 @@ class DataTransformer:
                     }
                 }
             
-            # check for nested data in input if output is a flat format
+            # check for semi-structured data in input formats that may contain them if output is structured
             if isinstance(input_data, list) and input_data and output_format in ['csv', 'sqlite']:
-                if self.is_nested(input_data):
+                if self.is_semiStruct(input_data):
                     if flatten:
                         input_data = self.flatten_data(input_data)
                     else:
                         return {
-                            'type': 'nested_data_warning',
-                            'message': 'Nested data detected. Would you like to flatten it?'
+                            'type': 'semi_data_warning',
+                            'message': 'Irregular or nested data detected. Flatten it for structured output?'
                         }
             
             # write output
@@ -466,15 +484,15 @@ class DataTransformer:
 
     def _write_output(self, data, output_path, output_format, flatten=False):
         """Write output in specified format."""
-        # check for nested structures in formats that may use them
-        nest_formats = ['json', 'xml']
+        # check structure
+        semi_formats = ['json', 'xml']
         structured_formats = ['csv', 'sqlite']
         if isinstance(data, list) and data and output_format in structured_formats:
-            if self.is_nested(data):
+            if self.is_semiStruct(data):
                 if flatten:
                     data = self.flatten_data(data)
                 else:
-                    raise Warning("Nested data detected in structured format output.")
+                    raise Warning("Irregular or nested data detected. Flatten it for structured output?")
 
         # write to chosen output format
         if output_format == 'csv':
@@ -488,7 +506,9 @@ class DataTransformer:
             self.write_xml(data, output_path)
         else:
             raise ValueError(f"Unsupported output format: {output_format}")
-
+        
+        #note: check preview conversion logic after final semi-structured data handling
+        #   might not be represented correctly. final output should be correct
     def preview_convert(self, input_path, output_format, table=None, flatten=False, limit=1000):
         """Generate a small output preview using the actual conversion logic but in memory."""
         try:
@@ -553,13 +573,13 @@ class DataTransformer:
                     data.append(self._xml_to_dict(record))
 
             # flatten preview if needed
-            if output_format in ['csv', 'sqlite'] and self.is_nested(data):
+            if output_format in ['csv', 'sqlite'] and self.is_semiStruct(data):
                 if flatten:
                     data = self.flatten_data(data)
                 else:
                     return {
-                        "type": "nested_data_warning",
-                        "message": "Nested data detected. Would you like to flatten it?"
+                        "type": "semi_data_warning",
+                        "message": "Irregular or nested data detected. Flatten it for structured output?"
                     }
 
             # format preview based on output format
@@ -781,9 +801,9 @@ class DataTransformerCLI:
             # convert dataset
             result = self.transformer.convert(input_path, output_path, input_format, output_format,
                                   flatten=False)
-            if result['type'] == 'nested_data_warning':
+            if result['type'] == 'semi_data_warning':
                 # check for nested data, notify user
-                response = input("Nested data detected. Flatten it for structured output? (y/n): ").strip().lower()
+                response = input("Irregular or nested data detected. Flatten it for structured output? y/n ").strip().lower()
                 if response == 'y':
                     self.transformer.convert(input_path, output_path, input_format, output_format, flatten=True)
                     print(f"Successfully converted '{input_path}' to '{output_path}' with flattening.")
@@ -995,8 +1015,8 @@ class DataTransformerHandler(BaseHTTPRequestHandler):
                 self.send_header('Content-Type', 'application/json')
                 self.end_headers()
                 self.wfile.write(json.dumps({
-                    "type": "nested_data_warning",
-                    "message": "Nested data detected. Would you like to flatten it?"
+                    "type": "semi_data_warning",
+                    "message": "Irregular or nested data detected. Flatten it for structured output?"
                 }).encode())
             finally:
                 if os.path.exists(input_path):
@@ -1143,6 +1163,7 @@ def run_server(port=8000):
     print(f'Starting server on http://localhost:{port}')
     server.serve_forever()
 
+# note: these need change for packaging
 if __name__ == "__main__":
     import sys
     if len(sys.argv) > 1 and sys.argv[1] == "serve":
