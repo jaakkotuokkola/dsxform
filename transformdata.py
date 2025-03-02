@@ -104,7 +104,6 @@ class DataTransformer:
         return flattened
     
     # note: some of these functions needed some testing still, xml -> json had some small issues
-            #note: check json and xml both ways
     def _flatten_value(self, key, value, flattened):
         """Standardize flattening for both JSON and XML sources."""
         if isinstance(value, dict):
@@ -227,9 +226,6 @@ class DataTransformer:
         finally:
             conn.close()
 
-        # xml operations seem to be a bit more difficult and take more time to compute in conversion and generation
-        #  not sure why,
-        # note: ensure semi-structured data for XML is handled properly
     def read_xml(self, xml_path):
         """Read XML"""
         def parse_element(elem):
@@ -507,82 +503,36 @@ class DataTransformer:
         else:
             raise ValueError(f"Unsupported output format: {output_format}")
         
-        #note: check preview conversion logic after final semi-structured data handling
-        #   might not be represented correctly. final output should be correct
     def preview_convert(self, input_path, output_format, table=None, flatten=False, limit=1000):
         """Generate a small output preview using the actual conversion logic but in memory."""
         try:
             input_format = os.path.splitext(input_path)[1][1:]
             
-            # only read the data needed for preview
+            # use same input reading logic as actual conversion
             if input_format == 'csv':
-                with open(input_path, 'r') as f:
-                    reader = csv.DictReader(f)
-                    data = []
-                    for i, row in enumerate(reader):
-                        if i >= limit:
-                            break
-                        data.append(row)
+                data = self.read_csv(input_path)[:limit]
             elif input_format == 'json':
-                with open(input_path, 'r') as f:
-                    try:
-                        # first attempt to parse as array of objects
-                        all_data = json.load(f)
-                        if isinstance(all_data, list):
-                            data = all_data[:limit]
-                        else:
-                            data = [all_data]
-                    except json.JSONDecodeError:
-                        # if that fails, try parsing line by line
-                        f.seek(0)
-                        data = []
-                        current_obj = []
-                        in_object = False
-                        count = 0
-                        
-                        for line in f:
-                            if not in_object and '{' in line:
-                                in_object = True
-                                current_obj = [line]
-                            elif in_object:
-                                current_obj.append(line)
-                                if '}' in line:
-                                    in_object = False
-                                    try:
-                                        obj = json.loads(''.join(current_obj))
-                                        data.append(obj)
-                                        count += 1
-                                        if count >= limit:
-                                            break
-                                    except json.JSONDecodeError:
-                                        continue
-            elif input_format == 'sqlite':
-                conn = sqlite3.connect(input_path)
-                cursor = conn.cursor()
-                cursor.execute(f'SELECT * FROM {table} LIMIT {limit}')
-                headers = [desc[0] for desc in cursor.description]
-                data = [dict(zip(headers, row)) for row in cursor.fetchall()]
-                conn.close()
-            elif input_format == 'xml':
-                tree = ET.parse(input_path)
-                root = tree.getroot()
-                data = []
-                for i, record in enumerate(root.findall('.//record')):
-                    if i >= limit:
-                        break
-                    data.append(self._xml_to_dict(record))
-
-            # flatten preview if needed
-            if output_format in ['csv', 'sqlite'] and self.is_semiStruct(data):
-                if flatten:
-                    data = self.flatten_data(data)
+                data = self.read_json(input_path)
+                if isinstance(data, list):
+                    data = data[:limit]
                 else:
-                    return {
-                        "type": "semi_data_warning",
-                        "message": "Irregular or nested data detected. Flatten it for structured output?"
-                    }
+                    data = [data]
+            elif input_format == 'sqlite':
+                data = self.read_sqlite(input_path, table)[:limit]
+            elif input_format == 'xml':
+                data = self.read_xml(input_path)[:limit]
 
-            # format preview based on output format
+            if isinstance(data, list) and data and output_format in ['csv', 'sqlite']:
+                if self.is_semiStruct(data):
+                    if flatten:
+                        data = self.flatten_data(data)
+                    else:
+                        return {
+                            "type": "semi_data_warning",
+                            "message": "Irregular or nested data detected. Flatten it for structured output?"
+                        }
+
+            # format preview based on output format using same logic as actual conversion
             if output_format == 'csv':
                 output = StringIO()
                 if data:
