@@ -6,6 +6,7 @@ import ctypes
 import sqlite3
 import logging
 import tempfile
+import glob
 from io import StringIO
 import argparse
 import mimetypes
@@ -13,9 +14,9 @@ import xml.etree.ElementTree as ET
 from filedialog import get_save_dialog
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
-# This python file is a simple tool for converting data between different formats
-# And for generating mock data based on given regular expressions
-# Using C compiled to a shared library for tokenizing and parsing regex patterns and generating random data
+# This python file is used for a simple tool for converting data between different formats
+# And also for generating mock data based on given regular expressions
+# Most of the regex and data generation logic is implemented in C
 
 class ASTNode(ctypes.Structure):
     pass
@@ -35,10 +36,14 @@ class Token(ctypes.Structure):
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 class DataTransformer:
-    def __init__(self, config_path="genconfig.json"):
+    def __init__(self, config_path=None):
         self.supported_formats = ['csv', 'json', 'sqlite', 'xml']
-        self.config_path = config_path
-        # C funtion definitions
+        self.config_path = config_path or self._get_default_config_path()
+
+        self.configs_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'configs')
+        os.makedirs(self.configs_dir, exist_ok=True)
+        
+        # C library compiled from randomvalues.c
         self.lib = ctypes.CDLL('./librandomvalues.so')
         self.lib.tokenize.argtypes = [
             ctypes.c_char_p,                        # Pattern
@@ -53,25 +58,114 @@ class DataTransformer:
         ]
         self.lib.parse_tokens.restype = ctypes.c_int
         self.lib.initialize_random()
+        # the following functions are only used for the generation preview functionality
+        # for actual data generation, the freeing should already be handled in C directly
         self.lib.free_ast.argtypes = [ctypes.POINTER(ASTNode)]
         self.lib.free_ast.restype = None
         self.lib.free_tokens.argtypes = [ctypes.POINTER(Token)]
         self.lib.free_tokens.restype = None
+
+    def _get_default_config_path(self):
+        """Get the default config path, create configs directory if needed."""
+        configs_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'configs')
+        os.makedirs(configs_dir, exist_ok=True)
         
+        default_path = os.path.join(configs_dir, 'genconfig.json')
+        if not os.path.exists(default_path):
+            default_config = { # note: change to the actual default after UI is correctly implemented (alternatives UX still faulty)
+                "headers": ["id", "name", "email"],
+                "patterns": {
+                    "id": "\\d{1,6}",
+                    "name": "[A-Z][a-z]{2,10}",
+                    "email": "[a-z]{3,8}@example\\.com"
+                }
+            }
+            with open(default_path, 'w') as f:
+                json.dump(default_config, f, indent=2)
+        
+        return default_path
+    
+    def list_config_files(self):
+        """List all available configuration files in the configs directory."""
+        configs = glob.glob(os.path.join(self.configs_dir, "*.json"))
+        return [os.path.basename(c) for c in configs]
+    
+    def get_config(self, config_name=None):
+        """Get configuration from a specific file or the current one."""
+        if config_name:
+            config_path = os.path.join(self.configs_dir, config_name)
+        else:
+            config_path = self.config_path
+            
+        try:
+            with open(config_path, 'r') as f:
+                config = json.load(f)
+            return config
+        except Exception as e:
+            logging.error(f"Error loading config {config_path}: {str(e)}")
+            return None
+    
+    def save_config(self, config_data, config_name):
+        """Save configuration to a file."""
+        config_path = os.path.join(self.configs_dir, config_name)
+        try:
+            with open(config_path, 'w') as f:
+                json.dump(config_data, f, indent=2)
+            self.config_path = config_path  # update config path
+            return True
+        except Exception as e:
+            logging.error(f"Error saving config {config_path}: {str(e)}")
+            return False
+    
+    def test_pattern(self, pattern, num_samples=5):
+        """Test a regex pattern by generating mock samples for preview."""
+        try:
+            samples = []
+            
+            tokens_ptr = ctypes.POINTER(Token)()
+            num_tokens = ctypes.c_int(0)
+
+            pattern_bytes = pattern.encode('utf-8')
+            
+            if self.lib.tokenize(pattern_bytes, ctypes.byref(tokens_ptr), ctypes.byref(num_tokens)) != 0:
+                return ["Error: Failed to tokenize pattern"]
+                
+            ast_ptr = ctypes.POINTER(ASTNode)()
+            if self.lib.parse_tokens(tokens_ptr, num_tokens.value, ctypes.byref(ast_ptr)) != 0:
+                self.lib.free_tokens(tokens_ptr)
+                return ["Error: Failed to parse pattern"]
+                
+            buffer = ctypes.create_string_buffer(256)
+            # generate samples
+            for i in range(num_samples):
+                if self.lib.generate_random_value_from_ast(ast_ptr, buffer, 255) != 0:
+                    samples.append("Error generating sample")
+                else:
+                    sample_text = buffer.value.decode('utf-8', errors='replace')
+                    samples.append(sample_text)
+            
+            self.lib.free_ast(ast_ptr)
+            self.lib.free_tokens(tokens_ptr)
+            
+            return samples
+            
+        except Exception as e:
+            logging.error(f"Error testing pattern: {str(e)}")
+            return [str(e)]
+
     def is_semiStruct(self, data):
-        """Check if data is semi-structured (has nested elements or irregular record structures)."""
+        """Check if data is semi-structured (has nested elements or irregular records)."""
         if not data:
             return False
             
-        # Get keys from first record to compare against
         reference_keys = set(data[0].keys())
         
         for item in data:
-            # Check for structural irregularity
+            # check for structural irregularity by comparing keys to the first record
             if set(item.keys()) != reference_keys:
                 return True
                 
-            # Check for nested structures
+            # check for nested structures
             for value in item.values():
                 if isinstance(value, (dict, list)):
                     return True
@@ -79,7 +173,7 @@ class DataTransformer:
         return False
     
     # Logic for flattening semi-structured (nested or irregularly structured) data from JSON/XML.
-    # JSON -> XML we of course try to preserve the structure as much as possible, since both can be semi-structured.
+    # JSON -> XML try to preserve the structure, since both can be semi-structured.
     # Essentially the structures are flattened so that every key is now represented in every record.
     # For nests, the parent key is prepended to the child key, and for arrays, the index is appended.
     def flatten_data(self, data):
@@ -96,28 +190,27 @@ class DataTransformer:
         ]
     
     def _flatten(self, item, parent_key=''):
-        """Recursively flatten semi-structured data."""
+        """Recursively flatten a single item."""
         flattened = {}
         for key, value in item.items():
             new_key = f"{parent_key}_{key}" if parent_key else key
             self._flatten_value(new_key, value, flattened)
         return flattened
     
-    # note: some of these functions needed some testing still, xml -> json had some small issues
     def _flatten_value(self, key, value, flattened):
-        """Standardize flattening for both JSON and XML sources."""
+        """Flatten a single value."""
         if isinstance(value, dict):
             for sub_key, sub_value in value.items():
-                if sub_value is not None:  # Preserve null values
+                if sub_value is not None:# preserve null values
                     self._flatten_value(f"{key}_{sub_key}", sub_value, flattened)
         elif isinstance(value, list):
-            if value:  # Process non-empty lists
+            if value:   # process non-empty lists
                 for idx, elem in enumerate(value):
                     if isinstance(elem, (dict, list)):
-                        # For nested structures (objects/arrays), use consistent indexing
+            # for nested structures (objects/arrays), use consistent indexing
                         self._flatten_value(f"{key}_{idx}", elem, flattened)
                     else:
-                        # For primitive arrays, use simpler indexing
+            # for primitive arrays, use simpler indexing
                         flattened[f"{key}_{idx}"] = elem
         else:
             flattened[key] = value
@@ -178,7 +271,7 @@ class DataTransformer:
             return tables
         except sqlite3.Error as e:
             raise ValueError(f"Error accessing SQLite database: {str(e)}")
-
+    # note: change sqlite to limit to 1 table     
     def read_sqlite(self, db_path, table=None):
         """Read from SQLite, optionally from a specific table."""
         try:
@@ -278,7 +371,6 @@ class DataTransformer:
             tree = ET.parse(xml_path)
             root = tree.getroot()
             
-            # handle root record list
             if root.tag == 'root':
                 records = []
                 for record in root.findall('record'):
@@ -292,7 +384,7 @@ class DataTransformer:
             raise ValueError(f"Invalid XML format: {xml_path}")
 
     def write_xml(self, data, xml_path):
-        """Write data to XML, preserving original structure and order."""
+        """Write data to XML, preserving original structure and order when possible."""
         def build_xml(element, value):
             if isinstance(value, dict):
                 # process dictionary items in original order
@@ -345,17 +437,15 @@ class DataTransformer:
 
             indent(root)
             tree = ET.ElementTree(root)
-            # use UTF-8 encoding and add XML declaration
             tree.write(xml_path, encoding='utf-8', xml_declaration=True)
             
-            # add final newline
             with open(xml_path, 'a') as f:
                 f.write('\n')
 
         except IOError:
             raise ValueError(f"Unable to write to file: {xml_path}")
     
-    # the idea is to generate random data based on regular expressions defined for each header in the config file
+    # the idea is to generate random data based on regular expressions defined for each header/key in the config file
     def generate_data(self, rows, output_path, output_format):
         """Generate mock data based on configured header patterns."""
         logging.info(f"Starting data generation for {rows} rows")
@@ -373,7 +463,7 @@ class DataTransformer:
                 c_headers[i] = h.encode()
                 c_patterns[i] = patterns[h].encode()
 
-            # calling C function for random data generation
+            # using C function for random data generation
             row_ptr_type = ctypes.POINTER(ctypes.c_char_p)
             data_pointer = row_ptr_type()
             if self.lib.generate_all_data(
@@ -447,7 +537,7 @@ class DataTransformer:
                     }
                 }
             
-            # check for semi-structured data in input formats that may contain them if output is structured
+            # check for semi-structured data in input formats that may contain them if output is a structured format
             if isinstance(input_data, list) and input_data and output_format in ['csv', 'sqlite']:
                 if self.is_semiStruct(input_data):
                     if flatten:
@@ -504,7 +594,7 @@ class DataTransformer:
             raise ValueError(f"Unsupported output format: {output_format}")
         
     def preview_convert(self, input_path, output_format, table=None, flatten=False, limit=1000):
-        """Generate a small output preview using the actual conversion logic but in memory."""
+        """Generate a small output preview using the actual conversion logic"""
         try:
             input_format = os.path.splitext(input_path)[1][1:]
             
@@ -532,7 +622,7 @@ class DataTransformer:
                             "message": "Irregular or nested data detected. Flatten it for structured output?"
                         }
 
-            # format preview based on output format using same logic as actual conversion
+            # format preview based on output format
             if output_format == 'csv':
                 output = StringIO()
                 if data:
@@ -601,7 +691,7 @@ class DataTransformer:
             else:
                 elem.tail = "\n" + indent
 
-    # previews are styled properly for each format
+    # previews are styled properly for each format (if special styling is needed)
     def _create_grid_view(self, data):
         """Create HTML grid view for SQLite preview."""
         if not data:
@@ -831,11 +921,9 @@ class MultipartFormParser:
                 print(f"Error parsing part: {e}")
 
     def getvalue(self, key, default=None):
-        """Get a form field value"""
         return self._fields.get(key, default)
 
     def getfile(self, key):
-        """Get a file field"""
         return self._files.get(key)
 
 class DataTransformerHandler(BaseHTTPRequestHandler):
@@ -870,6 +958,14 @@ class DataTransformerHandler(BaseHTTPRequestHandler):
             self.handle_finalize()
         elif self.path == '/generate':
             self.handle_generate()
+        elif self.path == '/list-configs':
+            self.handle_list_configs()
+        elif self.path == '/get-config':
+            self.handle_get_config()
+        elif self.path == '/save-config':
+            self.handle_save_config()
+        elif self.path == '/test-pattern':
+            self.handle_test_pattern()
         else:
             self.send_error(404, 'Not found')
 
@@ -948,7 +1044,7 @@ class DataTransformerHandler(BaseHTTPRequestHandler):
                     os.unlink(input_path)
                     return
 
-                # convert with table name (None means all tables, note: might better to force choosing, since sqlite might be very large)
+                # convert with table name (None means all tables, note: might better to force choosing)
                 table = None if table_name == '*' else table_name
                 result = self.transformer.convert(input_path, output_path, 
                                       input_format, output_format, 
@@ -983,7 +1079,6 @@ class DataTransformerHandler(BaseHTTPRequestHandler):
                 self.send_error(400, 'Expected multipart/form-data')
                 return
 
-            # Parse form data
             boundary = content_type.split('boundary=')[1].strip()
             environ = {
                 'boundary': boundary,
@@ -1008,7 +1103,7 @@ class DataTransformerHandler(BaseHTTPRequestHandler):
                 self.send_error(400, 'No output format specified')
                 return
 
-            # Save uploaded file temporarily
+            # save uploaded file temporarily
             input_path = os.path.join(UPLOAD_FOLDER, filename)
             with open(input_path, 'wb') as f:
                 f.write(file_data['content'])
@@ -1018,15 +1113,15 @@ class DataTransformerHandler(BaseHTTPRequestHandler):
                 flatten = form.getvalue('flatten') == 'true'
                 table_name = form.getvalue('table')
 
-                # Special handling for SQLite tables
+                # special handling for SQLite tables
                 if input_format == 'sqlite' and not table_name:
                     tables = self.transformer.list_sqlite_tables(input_path)
                     if not tables:
                         self.send_error(400, "No tables found in SQLite database")
                         return
-                    table_name = tables[0]  # Use first table for preview
+                    table_name = tables[0]  # use first table for preview
 
-                # Get preview
+                # get preview
                 preview_result = self.transformer.preview_convert(
                     input_path, output_format, table=table_name, flatten=flatten
                 )
@@ -1075,14 +1170,19 @@ class DataTransformerHandler(BaseHTTPRequestHandler):
             
             rows = data.get('rows', 100)
             output_format = data.get('format')
+            config_name = data.get('config')
             
-            # Get save path using file dialog
+            # set config path to the selected config
+            if config_name:
+                self.transformer.config_path = os.path.join(self.transformer.configs_dir, config_name)
+            
+            # get save path using file dialog
             output_path = get_save_dialog(
                 title="Save Generated Data",
                 default_name=f"generated_data.{output_format}"
             )
             
-            if not output_path:  # User cancelled dialog
+            if not output_path:  # user cancelled dialog
                 self.send_response(200)
                 self.send_header('Content-Type', 'application/json')
                 self.end_headers()
@@ -1091,8 +1191,8 @@ class DataTransformerHandler(BaseHTTPRequestHandler):
                     "message": "Operation cancelled by user"
                 }).encode())
                 return
-
-            # Generate data
+            
+            # generate data
             self.transformer.generate_data(rows, output_path, output_format)
             
             self.send_response(200)
@@ -1107,13 +1207,102 @@ class DataTransformerHandler(BaseHTTPRequestHandler):
             self.send_error(500, str(e))
             logging.error(f"Generation error: {str(e)}")
 
+    def handle_list_configs(self):
+        """Handle request to list available config files."""
+        try:
+            configs = self.transformer.list_config_files()
+            
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({
+                "configs": configs
+            }).encode())
+            
+        except Exception as e:
+            self.send_error(500, str(e))
+            logging.error(f"Error listing configs: {str(e)}")
+
+    def handle_get_config(self):
+        """Handle request to get a specific config file."""
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length).decode('utf-8')
+            data = json.loads(body)
+            
+            config_name = data.get('config')
+            config = self.transformer.get_config(config_name)
+            
+            if config:
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "config": config
+                }).encode())
+            else:
+                self.send_error(404, f"Config '{config_name}' not found")
+            
+        except Exception as e:
+            self.send_error(500, str(e))
+            logging.error(f"Error getting config: {str(e)}")
+
+    def handle_save_config(self):
+        """Handle request to save a config file."""
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length).decode('utf-8')
+            data = json.loads(body)
+            
+            config_name = data.get('config_name')
+            config_data = data.get('config_data')
+            
+            if not config_name.endswith('.json'):
+                config_name += '.json'
+            
+            success = self.transformer.save_config(config_data, config_name)
+            
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({
+                "success": success,
+                "message": "Configuration saved successfully" if success else "Failed to save configuration"
+            }).encode())
+            
+        except Exception as e:
+            self.send_error(500, str(e))
+            logging.error(f"Error saving config: {str(e)}")
+
+    def handle_test_pattern(self):
+        """Handle request to test a regex pattern."""
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length).decode('utf-8')
+            data = json.loads(body)
+            
+            pattern = data.get('pattern')
+            num_samples = data.get('samples', 5)
+            
+            samples = self.transformer.test_pattern(pattern, num_samples)
+            
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({
+                "samples": samples
+            }).encode())
+            
+        except Exception as e:
+            self.send_error(500, str(e))
+            logging.error(f"Error testing pattern: {str(e)}")
+
 def run_server(port=8000):
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
     server = HTTPServer(('localhost', port), DataTransformerHandler)
     print(f'Starting server on http://localhost:{port}')
     server.serve_forever()
 
-# note: these need change for packaging
 if __name__ == "__main__":
     import sys
     if len(sys.argv) > 1 and sys.argv[1] == "serve":

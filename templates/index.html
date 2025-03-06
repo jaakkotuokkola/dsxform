@@ -147,7 +147,7 @@
 
         button[type="submit"]:active,
         button[type="button"]:active {
-            background-color: var(--primary-hover);
+            background-color: var (--primary-hover);
         }
 
         button[type="submit"]:disabled,
@@ -460,6 +460,480 @@
             border-color: var(--success-color) !important;
             box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.25) !important;
         }
+
+        /* Pattern Builder Styles */
+        .config-section {
+            margin-top: 24px;
+            border-top: 1px solid var(--border-color);
+            padding-top: 24px;
+        }
+
+        .pattern-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .pattern-fields {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .pattern-field {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .pattern-rows {
+            margin-top: 16px;
+        }
+
+        .pattern-row {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .pattern-row:last-child {
+            border-bottom: none;
+        }
+
+        .pattern-name {
+            flex: 1;
+            margin-right: 12px;
+        }
+
+        .pattern-value {
+            flex: 2;
+        }
+
+        .pattern-controls {
+            width: 80px;
+            text-align: right;
+        }
+
+        .btn-icon {
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 4px 8px;
+        }
+
+        .btn-icon:hover {
+            color: var(--primary-hover);
+        }
+
+        .pattern-builder {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .pattern-component {
+            display: inline-block;
+            margin: 4px;
+            padding: 6px 12px;
+            background-color: rgba(43, 76, 58, 0.1);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .pattern-component:hover {
+            background-color: rgba(43, 76, 58, 0.2);
+        }
+
+        .pattern-preview {
+            margin-top: 12px;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background-color: var(--bg-color);
+        }
+
+        .pattern-result {
+            font-family: monospace;
+            white-space: pre-wrap;
+            padding: 8px;
+            background-color: #f1f1f1;
+            border-radius: 4px;
+            margin-top: 8px;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+
+        .preview-samples {
+            margin-top: 12px;
+        }
+
+        .sample-item {
+            padding: 6px 8px;
+            background-color: #f8f8f8;
+            border-radius: 3px;
+            margin-bottom: 4px;
+            font-family: monospace;
+        }
+
+        .configs-dropdown {
+            width: 100%;
+            margin-bottom: 16px;
+        }
+
+        .config-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .config-actions button {
+            flex: 1;
+            min-width: 0;
+        }
+
+        /* Modal Dialog */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal-dialog {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: var(--bg-color);
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            padding: 24px;
+            z-index: 1001;
+            width: 400px;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-muted);
+        }
+
+        .modal-body {
+            margin-bottom: 24px;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .modal-footer button {
+            padding: 8px 16px;
+            min-width: 80px;
+        }
+
+        /* Component help tooltip */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            border-bottom: 1px dotted #ccc;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 240px;
+            background-color: #555;
+            color: #fff;
+            text-align: left;
+            border-radius: 6px;
+            padding: 8px 12px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -120px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 0.9;
+        }
+
+        /* Pattern Builder Modal Styles */
+        .pattern-builder-modal {
+            display: none;
+            position: fixed;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            resize: both;
+            overflow: auto;
+            top: 20%;
+            left: 20%;
+            width: 60%;
+            height: 60%;
+            min-width: 600px;
+            min-height: 400px;
+            transform: none;
+            padding: 20px;
+        }
+        
+        .pattern-builder-content {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+        }
+        
+        .pattern-builder-header {
+            cursor: move;
+            user-select: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        .pattern-builder-header h3 {
+            margin: 0;
+            font-size: 18px;
+        }
+        
+        .pattern-builder-close {
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-muted);
+        }
+        
+        .pattern-builder-body {
+            flex: 1;
+            overflow: auto;
+            padding: 10px 0;
+        }
+        
+        .pattern-builder-footer {
+            margin-top: 20px;
+            display: flex;
+            justify-content: flex-end;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+            gap: 12px;
+        }
+        
+        .pattern-builder-footer button {
+            width: auto;
+        }
+
+        .pattern-row {
+            display: flex;
+            align-items: center;
+            padding: 6px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .pattern-name {
+            width: 120px; /* Fixed width for field names */
+            padding-right: 8px;
+            font-weight: 500;
+        }
+        
+        .pattern-value {
+            flex: 1;
+            padding-left: 8px;
+            font-family: monospace;
+        }
+        
+        .pattern-controls {
+            display: flex;
+            gap: 4px;
+            margin-left: 8px;
+        }
+        
+        .btn-icon {
+            background-color: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--primary-color);
+            cursor: pointer;
+            padding: 2px 6px;
+            font-size: 12px;
+        }
+        
+        .pattern-component {
+            display: inline-block;
+            margin: 3px;
+            padding: 4px 8px;
+            background-color: rgba(43, 76, 58, 0.1);
+            border: 1px solid var(--border-color);
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        /* Token Editor Styles */
+        .token-container {
+            min-height: 40px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            align-items: center;
+            background-color: var(--bg-color);
+            margin-bottom: 12px;
+        }
+        
+        .pattern-token {
+            display: inline-flex;
+            align-items: center;
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-family: monospace;
+            font-size: 13px;
+            user-select: none;
+            cursor: grab;
+        }
+        
+        .pattern-token:hover {
+            background-color: rgba(43, 76, 58, 0.1);
+        }
+        
+        .pattern-token.character-class {
+            background-color: rgba(43, 76, 58, 0.1);
+            color: #2b4c3a;
+        }
+        
+        .pattern-token.quantifier {
+            background-color: rgba(66, 139, 202, 0.1);
+            color: #428bca;
+        }
+        
+        .pattern-token.escape {
+            background-color: rgba(217, 83, 79, 0.1);
+            color: #d9534f;
+        }
+        
+        .pattern-token.alternation {
+            background-color: rgba(240, 173, 78, 0.1);
+            color: #f0ad4e;
+        }
+        
+        .pattern-token.literal {
+            background-color: rgba(92, 184, 92, 0.1);
+            color: #5cb85c;
+        }
+        
+        .token-delete {
+            margin-left: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            color: var(--text-muted);
+            display: none;
+        }
+        
+        .pattern-token:hover .token-delete {
+            display: inline;
+        }
+        
+        .token-delete:hover {
+            color: var(--error-color);
+        }
+        
+        .token-container.dragging {
+            background-color: var(--surface-color);
+        }
+        
+        .pattern-token.dragging {
+            opacity: 0.5;
+        }
+
+        /* Pattern token styles */
+        .token-container {
+            min-height: 40px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            align-items: center;
+            background-color: var(--bg-color);
+            margin-bottom: 12px;
+        }
+
+        /* Token editor - editable tokens */
+        .pattern-token-content {
+            display: inline-block;
+            pointer-events: none; /* Make text non-clickable so clicks go to parent */
+        }
+        
+        .pattern-token-edit {
+            display: none;
+            font-family: monospace;
+            font-size: 13px;
+            border: none;
+            background: transparent;
+            width: 100%;
+            outline: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .pattern-token.editing .pattern-token-content {
+            display: none;
+        }
+        
+        .pattern-token.editing .pattern-token-edit {
+            display: inline-block;
+        }
+        
+        .pattern-token.editing {
+            padding: 2px 6px;
+            min-width: 40px;
+        }
     </style>
 </head>
 <body>
@@ -516,6 +990,19 @@
             <div id="generate" class="tab">
                 <h2>Generate Data</h2>
                 <p class="section-description">Create mock data sets based on your defined patterns</p>
+                
+                <!-- Config selector section -->
+                <div class="form-group">
+                    <label>Pattern Configuration:</label>
+                    <div class="configs-dropdown">
+                        <select id="configSelect" name="config"></select>
+                    </div>
+                    <div class="config-actions">
+                        <button type="button" onclick="newConfig()">New Config</button>
+                        <button type="button" onclick="editConfig()">Edit Config</button>
+                    </div>
+                </div>
+                
                 <div id="generateForm">
                     <div class="form-group">
                         <label>Number of Rows:</label>
@@ -536,7 +1023,7 @@
         </div>
     </div>
     
-    <!-- add preview modal -->
+    <!-- preview modal -->
     <div id="previewModal" class="preview-modal">
         <div class="preview-content">
             <div class="preview-header">
@@ -552,6 +1039,158 @@
         </div>
     </div>
 
+    <!-- pattern builder modal -->
+    <div id="patternBuilderModal" class="pattern-builder-modal">
+        <div class="pattern-builder-content">
+            <div class="pattern-builder-header">
+                <h3>Pattern Builder</h3>
+                <span class="pattern-builder-close" onclick="closePatternBuilder()">&times;</span>
+            </div>
+            <div class="pattern-builder-body">
+                <!-- Config Name -->
+                <div class="form-group">
+                    <label>Configuration Name:</label>
+                    <input type="text" id="configNameInput" placeholder="Config name..." />
+                </div>
+                
+                <!-- Headers/Fields section -->
+                <div class="pattern-fields">
+                    <div class="pattern-field">
+                        <div class="form-group">
+                            <label>Add New Field:</label>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="text" id="newFieldName" placeholder="Field name..." style="flex: 1;">
+                                <button type="button" onclick="addNewField()" style="width: auto;">Add</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Pattern rows -->
+                <div class="pattern-rows" id="patternRows">
+                    <!-- Pattern rows will be added dynamically -->
+                </div>
+            </div>
+            
+            <div class="pattern-builder-footer">
+                <button type="button" onclick="saveConfig()">Save Configuration</button>
+                <button type="button" onclick="closePatternBuilder()" style="background-color: #6c757d;">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Pattern edit modal with token-based editor -->
+    <div id="patternEditModal" class="modal-overlay">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3 class="modal-title">Edit Pattern</h3>
+                <button class="modal-close" onclick="closePatternModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Pattern Components:</label>
+                    <div class="pattern-builder">
+                        <!-- Character classes -->
+                        <div class="tooltip">
+                            <div class="pattern-component" onclick="addToPattern('[a-z]')">a-z</div>
+                            <span class="tooltiptext">Lowercase letters</span>
+                        </div>
+                        <div class="tooltip">
+                            <div class="pattern-component" onclick="addToPattern('[A-Z]')">A-Z</div>
+                            <span class="tooltiptext">Uppercase letters</span>
+                        </div>
+                        <div class="tooltip">
+                            <div class="pattern-component" onclick="addToPattern('[0-9]')">0-9</div>
+                            <span class="tooltiptext">Digits</span>
+                        </div>
+                        
+                        <!-- Escape sequences -->
+                        <div class="tooltip">
+                            <div class="pattern-component" onclick="addToPattern('\\d')">\\d</div>
+                            <span class="tooltiptext">Any digit</span>
+                        </div>
+                        <div class="tooltip">
+                            <div class="pattern-component" onclick="addToPattern('\\w')">\\w</div>
+                            <span class="tooltiptext">Any word character</span>
+                        </div>
+                        <div class="tooltip">
+                            <div class="pattern-component" onclick="addToPattern('\\s')">\\s</div>
+                            <span class="tooltiptext">Any whitespace</span>
+                        </div>
+                        
+                        <!-- Any character -->
+                        <div class="tooltip">
+                            <div class="pattern-component" onclick="addToPattern('.')">.</div>
+                            <span class="tooltiptext">Any character</span>
+                        </div>
+                        
+                        <!-- Quantifiers -->
+                        <div class="tooltip">
+                            <div class="pattern-component" onclick="addToPattern('{3}')">Exact {n}</div>
+                            <span class="tooltiptext">Exactly n times</span>
+                        </div>
+                        <div class="tooltip">
+                            <div class="pattern-component" onclick="addToPattern('{1,5}')">Range {m,n}</div>
+                            <span class="tooltiptext">Between m and n times</span>
+                        </div>
+                        
+                        <!-- Alternation -->
+                        <div class="tooltip">
+                            <div class="pattern-component" onclick="addToPattern('(a|b)')">Alternation (a|b)</div>
+                            <span class="tooltiptext">Match either a or b</span>
+                        </div>
+                        
+                        <!-- Literal text -->
+                        <div class="tooltip">
+                            <div class="pattern-component" onclick="addToPattern('abc')">Text "abc"</div>
+                            <span class="tooltiptext">Add literal text (click and edit)</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Pattern:</label>
+                    <div id="tokenContainer" class="token-container">
+                        <!-- Pattern tokens will be displayed here -->
+                    </div>
+                    <input type="hidden" id="patternInput">
+                </div>
+                
+                <div class="pattern-preview">
+                    <label>Preview:</label>
+                    <div id="previewSamples" class="preview-samples">
+                        <!-- Sample values will be shown here -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" onclick="testPattern()">Test</button>
+                <button type="button" onclick="applyPattern()">Apply</button>
+                <button type="button" onclick="closePatternModal()" style="background-color: #6c757d;">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Save Config Modal -->
+    <div id="saveConfigModal" class="modal-overlay">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3 class="modal-title">Save Configuration</h3>
+                <button class="modal-close" onclick="document.getElementById('saveConfigModal').style.display='none'">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Configuration Name:</label>
+                    <input type="text" id="saveConfigName" placeholder="my_config.json">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" onclick="confirmSaveConfig()">Save</button>
+                <button type="button" onclick="document.getElementById('saveConfigModal').style.display='none'" style="background-color: #6c757d;">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
     <footer class="footer">
         <!-- Footer content -->
     </footer>
@@ -578,13 +1217,13 @@
             
             if (!file) return;
 
-            // Check if file extension is supported
+            // check if file extension is supported
             const extension = file.name.toLowerCase().split('.').pop();
             const supportedFormats = ['csv', 'json', 'sqlite', 'xml'];
             
             if (!supportedFormats.includes(extension)) {
                 alert('Unsupported file format. Please select a CSV, JSON, SQLite, or XML file.');
-                this.value = ''; // Clear the file input
+                this.value = '';
                 return;
             }
 
@@ -819,11 +1458,22 @@
             const form = document.getElementById('generateForm');
             const rows = parseInt(form.querySelector('[name="rows"]').value);
             const format = form.querySelector('[name="format"]').value;
+            const configSelect = document.getElementById('configSelect');
+            const selectedConfig = configSelect.value;
 
             if (isNaN(rows) || rows < 1) {
                 alert('Invalid row count');
                 return;
             }
+
+            if (!selectedConfig) {
+                alert('Please select a pattern configuration');
+                return;
+            }
+
+            const button = form.querySelector('button[type="button"]');
+            button.disabled = true;
+            button.textContent = 'Generating...';
 
             try {
                 const response = await fetch('/generate', {
@@ -833,7 +1483,8 @@
                     },
                     body: JSON.stringify({
                         rows: rows,
-                        format: format
+                        format: format,
+                        config: selectedConfig
                     })
                 });
 
@@ -849,6 +1500,9 @@
                 }
             } catch (error) {
                 alert('Error: ' + error.message);
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Generate';
             }
         }
 
@@ -869,12 +1523,19 @@
                 console.log('Finalize button listener added');
             }
 
-            // initialize draggable modal
             makeDraggable(document.getElementById('previewModal'));
+            loadConfigs();
         });
 
         function makeDraggable(element) {
-            const header = element.querySelector('.preview-header');
+            const header = element.querySelector('.pattern-builder-header') || 
+                          element.querySelector('.preview-header');
+            
+            if (!header) {
+                console.error('No header found for draggable element');
+                return;
+            }
+            
             let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
             
             header.onmousedown = dragMouseDown;
@@ -905,17 +1566,12 @@
                 const elementHeight = element.offsetHeight;
                 const elementWidth = element.offsetWidth;
                 
-                // Keep element within bounds
-                //  top boundary (minimum 0)
+                // keep element within bounds
                 newTop = Math.max(0, newTop);
-                //  left boundary (minimum 0)
                 newLeft = Math.max(0, newLeft);
-                //  bottom boundary (maximum viewport height - element height)
                 newTop = Math.min(viewportHeight - elementHeight, newTop);
-                //  right boundary (maximum viewport width - element width)
                 newLeft = Math.min(viewportWidth - elementWidth, newLeft);
                 
-                //  apply the constrained position
                 element.style.top = newTop + "px";
                 element.style.left = newLeft + "px";
             }
@@ -926,8 +1582,681 @@
             }
         }
 
-        // initialize draggable immediately after modal is added to DOM
-        makeDraggable(document.getElementById('previewModal'));
+        // load available configs
+        async function loadConfigs() {
+            try {
+                const response = await fetch('/list-configs', {
+                    method: 'POST'
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load configurations');
+                }
+                
+                const result = await response.json();
+                configs = result.configs;
+                
+                // populate config selection
+                const configSelect = document.getElementById('configSelect');
+                configSelect.innerHTML = '';
+                
+                configs.forEach(config => {
+                    const option = document.createElement('option');
+                    option.value = config;
+                    option.textContent = config;
+                    configSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading configs:', error);
+                alert('Failed to load configurations: ' + error.message);
+            }
+        }
+
+        // new config creation
+        function newConfig() {
+            currentConfig = {
+                headers: [],
+                patterns: {}
+            };
+            
+            document.getElementById('configNameInput').value = 'new_config.json';
+            document.getElementById('patternRows').innerHTML = '';
+            
+            // show the pattern builder modal
+            const patternBuilderModal = document.getElementById('patternBuilderModal');
+            patternBuilderModal.style.display = 'block';
+            
+            setTimeout(() => {
+                makeDraggable(patternBuilderModal);
+            }, 0);
+        }
+
+        // edit existing config
+        async function editConfig() {
+            const configSelect = document.getElementById('configSelect');
+            const selectedConfig = configSelect.value;
+            
+            if (!selectedConfig) {
+                alert('Please select a configuration to edit');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/get-config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        config: selectedConfig
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load configuration');
+                }
+                
+                const result = await response.json();
+                currentConfig = result.config;
+                
+                document.getElementById('configNameInput').value = selectedConfig;
+                
+                const patternBuilderModal = document.getElementById('patternBuilderModal');
+                patternBuilderModal.style.display = 'block';
+                
+                // render rows and make draggable AFTER the modal is displayed
+                setTimeout(() => {
+                    renderPatternRows();
+                    makeDraggable(patternBuilderModal);
+                }, 0);
+            } catch (error) {
+                console.error('Error editing config:', error);
+                alert('Failed to edit configuration: ' + error.message);
+            }
+        }
+
+        // render pattern rows based on current config
+        function renderPatternRows() {
+            const rowsContainer = document.getElementById('patternRows');
+            rowsContainer.innerHTML = '';
+            
+            if (!currentConfig || !currentConfig.headers || !currentConfig.patterns) {
+                console.warn('No valid configuration to render');
+                return;
+            }
+            
+            currentConfig.headers.forEach(header => {
+                const pattern = currentConfig.patterns[header] || '';
+                
+                const row = document.createElement('div');
+                row.className = 'pattern-row';
+                
+                // pattern name cell
+                const nameCell = document.createElement('div');
+                nameCell.className = 'pattern-name';
+                nameCell.textContent = header;
+                row.appendChild(nameCell);
+                
+                // pattern value cell
+                const valueCell = document.createElement('div');
+                valueCell.className = 'pattern-value';
+                valueCell.textContent = pattern;
+                row.appendChild(valueCell);
+                
+                // controls cell
+                const controlsCell = document.createElement('div');
+                controlsCell.className = 'pattern-controls';
+                
+                // edit pattern
+                const editButton = document.createElement('button');
+                editButton.className = 'btn-icon';
+                editButton.textContent = 'Edit';
+                editButton.onclick = function() { editPattern(header); };
+                controlsCell.appendChild(editButton);
+                
+                // delete pattern
+                const deleteButton = document.createElement('button');
+                deleteButton.className = 'btn-icon';
+                deleteButton.textContent = 'Delete';
+                deleteButton.onclick = function() { deletePattern(header); };
+                controlsCell.appendChild(deleteButton);
+                
+                row.appendChild(controlsCell);
+                rowsContainer.appendChild(row);
+            });
+        }
+
+        function addNewField() {
+            const fieldName = document.getElementById('newFieldName').value.trim();
+            
+            if (!fieldName) {
+                alert('Please enter a field name');
+                return;
+            }
+            
+            if (currentConfig.headers.includes(fieldName)) {
+                alert('Field already exists');
+                return;
+            }
+            
+            currentConfig.headers.push(fieldName);
+            currentConfig.patterns[fieldName] = '';
+            
+            document.getElementById('newFieldName').value = '';
+            renderPatternRows();
+        }
+
+        // function for editing existing pattern
+        function editPattern(field) {
+            currentEditField = field;
+            
+            const pattern = currentConfig.patterns[field] || '';
+            
+            // parse the pattern into tokens and render them
+            currentTokens = tokenizePattern(pattern);
+            renderTokens(currentTokens);
+            
+            // clear previous preview samples
+            document.getElementById('previewSamples').innerHTML = '';
+            
+            // show the pattern edit modal
+            document.getElementById('patternEditModal').style.display = 'block';
+            
+            // test the pattern immediately
+            testPattern();
+        }
+
+        function deletePattern(field) {
+            if (confirm(`Are you sure you want to delete the field "${field}"?`)) {
+                const index = currentConfig.headers.indexOf(field);
+                if (index !== -1) {
+                    currentConfig.headers.splice(index, 1);
+                    delete currentConfig.patterns[field];
+                    renderPatternRows();
+                }
+            }
+        }
+
+        // function for adding a one of the supported tokens to the pattern
+        function addToPattern(component) {
+            const tokens = tokenizePattern(component);
+            const editableTokens = ['[a-z]', '[A-Z]', '[0-9]', '{3}', '{1,5}', '(a|b)', 'abc'];
+            
+            // add the token(s) to the current token list
+            const startIdx = currentTokens.length;
+            currentTokens = [...currentTokens, ...tokens];
+            renderTokens(currentTokens);
+            
+            // if this is an editable token type, trigger edit mode immediately
+            if (editableTokens.includes(component)) {
+                setTimeout(() => {
+                    // for tokens that produce only one token (most components)
+                    if (tokens.length === 1) {
+                        const newTokenIndex = startIdx;
+                        const tokenElem = document.querySelector(`.pattern-token[data-index="${newTokenIndex}"]`);
+                        if (tokenElem) {
+                            tokenElem.click(); // trigger edit mode
+                        }
+                    }
+                    // for components that might produce multiple tokens (rare)
+                    else if (tokens.length > 1) {
+                        // just focus the first one
+                        const newTokenIndex = startIdx;
+                        const tokenElem = document.querySelector(`.pattern-token[data-index="${newTokenIndex}"]`);
+                        if (tokenElem) {
+                            tokenElem.click(); // trigger edit mode
+                        }
+                    }
+                }, 0);
+            } else {
+                // for non-editable tokens, just test the pattern
+                testPattern(); // update preview after addition
+            }
+        }
+
+        // remove a token by index
+        function removeToken(index) {
+            currentTokens.splice(index, 1);
+            renderTokens(currentTokens);
+            testPattern(); // update preview after removal
+        }
+
+        // drag and drop functionality for changing token order
+        let draggedToken = null;
+        
+        function handleDragStart(e) {
+            this.classList.add('dragging');
+            draggedToken = this;
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', this.getAttribute('data-index'));
+        }
+        
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            return false;
+        }
+        
+        function handleDrop(e) {
+            e.preventDefault();
+            const sourceIndex = parseInt(e.dataTransfer.getData('text/plain'));
+            const targetIndex = parseInt(this.getAttribute('data-index'));
+            
+            if (sourceIndex !== targetIndex) {
+                // reorder tokens
+                const temp = currentTokens[sourceIndex];
+                currentTokens.splice(sourceIndex, 1);
+                currentTokens.splice(targetIndex, 0, temp);
+                renderTokens(currentTokens);
+                testPattern(); // update preview after reordering
+            }
+            return false;
+        }
+        
+        function handleDragEnd() {
+            document.querySelectorAll('.pattern-token').forEach(item => {
+                item.classList.remove('dragging');
+            });
+            draggedToken = null;
+        }
+
+        // render tokens in the editor
+        function renderTokens(tokens) {
+            const container = document.getElementById('tokenContainer');
+            container.innerHTML = '';
+            
+            tokens.forEach((token, index) => {
+                const tokenElem = document.createElement('div');
+                tokenElem.className = `pattern-token ${token.type}`;
+                tokenElem.setAttribute('data-index', index);
+                tokenElem.setAttribute('draggable', true);
+                
+                // content span
+                const contentSpan = document.createElement('span');
+                contentSpan.className = 'pattern-token-content';
+                contentSpan.textContent = token.display;
+                tokenElem.appendChild(contentSpan);
+                
+                // editable input
+                const editInput = document.createElement('input');
+                editInput.type = 'text';
+                editInput.className = 'pattern-token-edit';
+                editInput.value = token.display;
+                tokenElem.appendChild(editInput);
+                
+                // delete button
+                const deleteBtn = document.createElement('span');
+                deleteBtn.className = 'token-delete';
+                deleteBtn.innerHTML = '&times;';
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation(); // prevent token click when delete is clicked
+                    removeToken(index);
+                };
+                tokenElem.appendChild(deleteBtn);
+                
+                // setup click to edit
+                tokenElem.addEventListener('click', function(e) {
+                    if (!this.classList.contains('editing')) {
+                        // enable editing
+                        this.classList.add('editing');
+                        const input = this.querySelector('.pattern-token-edit');
+                        input.focus();
+                        input.select();
+                        // stop drag during edit
+                        this.setAttribute('draggable', 'false');
+                    }
+                });
+                
+                // setup edit field events
+                editInput.addEventListener('blur', function() {
+                    saveTokenEdit(index, this.value);
+                });
+                
+                editInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        saveTokenEdit(index, this.value);
+                    } else if (e.key === 'Escape') {
+                        e.preventDefault();
+                        cancelTokenEdit(index);
+                    }
+                });
+                
+                // drag events
+                tokenElem.addEventListener('dragstart', handleDragStart);
+                tokenElem.addEventListener('dragover', handleDragOver);
+                tokenElem.addEventListener('drop', handleDrop);
+                tokenElem.addEventListener('dragend', handleDragEnd);
+                
+                container.appendChild(tokenElem);
+            });
+            
+            // update hidden input with pattern
+            document.getElementById('patternInput').value = tokensToPattern(tokens);
+        }
+
+        // save token edit - updated to update preview after editing
+        function saveTokenEdit(index, newValue) {
+            const token = currentTokens[index];
+            if (newValue.trim() && newValue !== token.display) {
+                // try to parse the new value into appropriate token type
+                try {
+                    // for special token types, maintain their type but update display/value
+                    if (token.type === 'character-class' || 
+                        token.type === 'quantifier' || 
+                        token.type === 'escape' || 
+                        token.type === 'alternation') {
+                        
+                        const oldType = token.type;
+                        
+                        // validate the format based on token type
+                        if (oldType === 'character-class' && !isValidCharacterClass(newValue)) {
+                            throw new Error('Invalid character class format');
+                        } else if (oldType === 'quantifier' && !isValidQuantifier(newValue)) {
+                            throw new Error('Invalid quantifier format');
+                        } else if (oldType === 'alternation' && !isValidAlternation(newValue)) {
+                            throw new Error('Invalid alternation format');
+                        }
+                        
+                        token.display = newValue;
+                        token.value = newValue;
+                    } else {
+                        // for literals and other simple types, just update
+                        token.display = newValue;
+                        token.value = newValue;
+                    }
+                    
+                    renderTokens(currentTokens);
+                    testPattern(); // update preview after editing
+                } catch (e) {
+                    alert('Invalid token format: ' + e.message);
+                    cancelTokenEdit(index);
+                }
+            } else {
+                cancelTokenEdit(index);
+            }
+        }
+
+        // cancel token edit
+        function cancelTokenEdit(index) {
+            renderTokens(currentTokens);
+            testPattern(); // just in case the pattern was changed, update preview
+        }
+
+        // validate character class format like [a-z], [0-9], etc.
+        function isValidCharacterClass(value) {
+            return /^\[(\^)?[a-zA-Z0-9_\-]+\]$/.test(value);
+        }
+
+        // validate quantifier format like {3}, {1,5}
+        function isValidQuantifier(value) {
+            return /^\{(\d+)(?:,(\d+))?\}$/.test(value);
+        }
+
+        // validate alternation format like (a|b|c)
+        function isValidAlternation(value) {
+            return /^\([^()]+(?:\|[^()]+)+\)$/.test(value);
+        }
+
+        // handle drag start event with edit state check
+        function handleDragStart(e) {
+            if (this.classList.contains('editing')) {
+                e.preventDefault();
+                return false;
+            }
+            
+            this.classList.add('dragging');
+            draggedToken = this;
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', this.getAttribute('data-index'));
+        }
+
+        // pattern tokenizer for visual editor - works fine so far, note: more complex alternation needs more logic
+        function tokenizePattern(pattern) {
+            const tokens = [];
+            let i = 0;
+            
+            while (i < pattern.length) {
+                if (pattern[i] === '\\') {
+                    // escape sequences
+                    const escapeChar = pattern[i+1] || '';
+                    tokens.push({
+                        type: 'escape',
+                        value: '\\' + escapeChar,
+                        display: '\\' + escapeChar
+                    });
+                    i += 2;
+                } else if (pattern[i] === '[') {
+                    // character class
+                    let endIdx = pattern.indexOf(']', i);
+                    if (endIdx === -1) endIdx = pattern.length;
+                    const classContent = pattern.substring(i, endIdx + 1);
+                    tokens.push({
+                        type: 'character-class',
+                        value: classContent,
+                        display: classContent
+                    });
+                    i = endIdx + 1;
+                } else if (pattern[i] === '{') {
+                    // quantifier
+                    let endIdx = pattern.indexOf('}', i);
+                    if (endIdx === -1) endIdx = pattern.length;
+                    const quantContent = pattern.substring(i, endIdx + 1);
+                    tokens.push({
+                        type: 'quantifier',
+                        value: quantContent,
+                        display: quantContent
+                    });
+                    i = endIdx + 1;
+                } else if (pattern[i] === '(') {
+                    // alternation or group, needs more work for displaying alternated tokens
+                    let nestLevel = 1;
+                    let endIdx = i + 1;
+                    
+                    while (nestLevel > 0 && endIdx < pattern.length) {
+                        if (pattern[endIdx] === '(') nestLevel++;
+                        if (pattern[endIdx] === ')') nestLevel--;
+                        endIdx++;
+                    }
+                    
+                    const groupContent = pattern.substring(i, endIdx);
+                    tokens.push({
+                        type: 'alternation',
+                        value: groupContent,
+                        display: groupContent
+                    });
+                    i = endIdx;
+                } else if (pattern[i] === '.') {
+                    // any character
+                    tokens.push({
+                        type: 'any-char',
+                        value: '.',
+                        display: '.'
+                    });
+                    i++;
+                } else {
+                    // literal - collect consecutive literal characters
+                    let literalStart = i;
+                    while (i < pattern.length && 
+                           !'\\[{(.'.includes(pattern[i]) && 
+                           (i === pattern.length - 1 || pattern[i+1] !== '{')) {
+                        i++;
+                    }
+                    const literalContent = pattern.substring(literalStart, i);
+                    tokens.push({
+                        type: 'literal',
+                        value: literalContent,
+                        display: literalContent
+                    });
+                }
+            }
+            
+            return tokens;
+        }
+        
+        // convert tokens back to pattern string
+        function tokensToPattern(tokens) {
+            return tokens.map(token => token.value).join('');
+        }
+
+        // apply the pattern from tokens
+        function applyPattern() {
+            const pattern = tokensToPattern(currentTokens);
+            
+            if (currentEditField) {
+                currentConfig.patterns[currentEditField] = pattern;
+                renderPatternRows();
+                closePatternModal();
+            }
+        }
+
+        // preview the current pattern with samples of generated values
+        async function testPattern() {
+            const pattern = tokensToPattern(currentTokens);
+            if (!pattern) {
+                document.getElementById('previewSamples').innerHTML = 
+                    '<div class="sample-item">Add some pattern components to see examples</div>';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/test-pattern', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        pattern: pattern,
+                        samples: 5,
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to test pattern');
+                }
+                
+                const result = await response.json();
+                
+                // display sample values
+                const previewContainer = document.getElementById('previewSamples');
+                previewContainer.innerHTML = '';
+                
+                result.samples.forEach(sample => {
+                    const sampleElem = document.createElement('div');
+                    sampleElem.className = 'sample-item';
+                    sampleElem.textContent = sample;
+                    previewContainer.appendChild(sampleElem);
+                });
+            } catch (error) {
+                console.error('Error testing pattern:', error);
+                document.getElementById('previewSamples').innerHTML = 
+                    `<div class="sample-item error-sample">Error: ${error.message}</div>`;
+            }
+        }
+
+        function closePatternModal() {
+            document.getElementById('patternEditModal').style.display = 'none';
+            currentEditField = '';
+            currentTokens = [];
+        }
+
+        // open save config dialog
+        function saveConfig() {
+            // should have at least one field
+            if (currentConfig.headers.length === 0) {
+                alert('Configuration must have at least one field');
+                return;
+            }
+            
+            // ensure that a pattern is defined for each field
+            let missingPatterns = [];
+            currentConfig.headers.forEach(header => {
+                if (!currentConfig.patterns[header]) {
+                    missingPatterns.push(header);
+                }
+            });
+            // tell the user which fields need patterns
+            if (missingPatterns.length > 0) {
+                alert(`Please define patterns for these fields: ${missingPatterns.join(', ')}`);
+                return;
+            }
+            
+            // show the save dialog with current config name
+            const configNameInput = document.getElementById('configNameInput');
+            document.getElementById('saveConfigName').value = configNameInput.value || 'new_config.json';
+            document.getElementById('saveConfigModal').style.display = 'block';
+        }
+
+        async function confirmSaveConfig() {
+            const configName = document.getElementById('saveConfigName').value.trim();
+            
+            if (!configName) {
+                alert('Please enter a configuration name');
+                return;
+            }
+            
+            // add .json extension if not present
+            let fileName = configName;
+            if (!fileName.endsWith('.json')) {
+                fileName += '.json';
+            }
+            
+            try {
+                const response = await fetch('/save-config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        config_name: fileName,
+                        config_data: currentConfig
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to save configuration');
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Configuration saved successfully');
+                    document.getElementById('saveConfigModal').style.display = 'none';
+                    document.getElementById('patternBuilder').style.display = 'none';
+                    
+                    // reload configs list
+                    loadConfigs();
+                } else {
+                    alert('Failed to save configuration: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error saving config:', error);
+                alert('Failed to save configuration: ' + error.message);
+            }
+        }
+
+        // close pattern builder without saving
+        function closePatternBuilder() {
+            if (confirm('Discard all changes?')) {
+                document.getElementById('patternBuilderModal').style.display = 'none';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+
+            const tooltips = document.querySelectorAll('.tooltip');
+            tooltips.forEach(tooltip => {
+                const tooltipText = tooltip.querySelector('.tooltiptext');
+                tooltip.addEventListener('mouseover', () => {
+                    tooltipText.style.visibility = 'visible';
+                    tooltipText.style.opacity = '0.9';
+                });
+                tooltip.addEventListener('mouseout', () => {
+                    tooltipText.style.visibility = 'hidden';
+                    tooltipText.style.opacity = '0';
+                });
+            });
+        });
     </script>
 </body>
 </html>
