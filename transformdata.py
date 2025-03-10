@@ -70,7 +70,7 @@ class DataTransformer:
         configs_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'configs')
         os.makedirs(configs_dir, exist_ok=True)
         
-        default_path = os.path.join(configs_dir, 'genconfig.json')
+        default_path = os.path.join(configs_dir, 'default.json')
         if not os.path.exists(default_path):
             default_config = { # note: change to the actual default after UI is correctly implemented (alternatives UX still faulty)
                 "headers": ["id", "name", "email"],

@@ -805,7 +805,8 @@ h2 {
     font-size: 12px;
 }
 
-/* Token Editor Styles */
+/* Token Editor Styles - UPDATED */
+/* Remove duplicate token-container definition and keep just one */
 .token-container {
     min-height: 40px;
     border: 1px solid var(--border-color);
@@ -819,6 +820,7 @@ h2 {
     margin-bottom: 12px;
 }
 
+/* Fix pattern token to maintain consistent width */
 .pattern-token {
     display: inline-flex;
     align-items: center;
@@ -830,8 +832,75 @@ h2 {
     font-size: 13px;
     user-select: none;
     cursor: grab;
+    position: relative;
+    min-width: 40px;
+    box-sizing: border-box;
 }
 
+/* Fixed delete button style */
+.pattern-token .token-delete {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--text-muted);
+    opacity: 0;
+    width: 12px;
+    height: 12px;
+    text-align: center;
+    line-height: 12px;
+}
+
+/* Show delete button on hover */
+.pattern-token:hover .token-delete {
+    opacity: 1;
+    display: block;
+}
+
+/* Ensure content has space for delete button */
+.pattern-token-content {
+    display: inline-block;
+    pointer-events: none;
+    padding-right: 10px;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Fix edit input to match token size */
+.pattern-token-edit {
+    display: none;
+    font-family: monospace;
+    font-size: 13px;
+    border: none;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    min-width: 20px;
+    box-sizing: border-box;
+    width: auto; /* Allow input to determine its own width */
+}
+
+/* Maintain token dimensions when editing */
+.pattern-token.editing {
+    padding: 4px 8px;
+    width: auto; /* Allow dynamic width growth */
+    min-width: 40px; /* Maintain minimum width */
+    display: inline-block; /* Allow content to determine width */
+}
+
+/* Content and edit input visibility in edit mode */
+.pattern-token.editing .pattern-token-content {
+    display: none;
+}
+
+.pattern-token.editing .pattern-token-edit {
+    display: inline-block;
+}
+
+/* Color variants for token types */
 .pattern-token:hover {
     background-color: rgba(43, 76, 58, 0.1);
 }
@@ -861,22 +930,12 @@ h2 {
     color: #5cb85c;
 }
 
-.token-delete {
-    margin-left: 6px;
-    font-size: 12px;
-    cursor: pointer;
-    color: var(--text-muted);
-    display: none;
-}
-
-.pattern-token:hover .token-delete {
-    display: inline;
-}
-
+/* Make delete button red on hover */
 .token-delete:hover {
     color: var(--error-color);
 }
 
+/* Dragging state */
 .token-container.dragging {
     background-color: var(--surface-color);
 }
