@@ -491,7 +491,7 @@ h2 {
 .pattern-row {
     display: flex;
     align-items: center;
-    padding: 8px 0;
+    padding: 6px 10px;
     border-bottom: 1px solid var(--border-color);
 }
 
@@ -500,17 +500,29 @@ h2 {
 }
 
 .pattern-name {
-    flex: 1;
-    margin-right: 12px;
+    width: 30%; /* Changed from fixed width to percentage */
+    max-width: 120px;
+    padding-right: 4px; /* Reduced padding */
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .pattern-value {
-    flex: 2;
+    flex: 1;
+    padding-left: 4px; /* Reduced padding */
+    font-family: monospace;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .pattern-controls {
-    width: 80px;
-    text-align: right;
+    display: flex;
+    gap: 4px;
+    margin-left: 6px; /* Reduced margin */
+    white-space: nowrap;
 }
 
 .btn-icon {
@@ -764,26 +776,34 @@ h2 {
 .pattern-row {
     display: flex;
     align-items: center;
-    padding: 6px 0;
+    padding: 6px 10px;
     border-bottom: 1px solid var(--border-color);
 }
 
 .pattern-name {
-    width: 120px; /* Fixed width for field names */
-    padding-right: 8px;
+    width: 30%; /* Changed from fixed width to percentage */
+    max-width: 120px;
+    padding-right: 4px; /* Reduced padding */
     font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .pattern-value {
     flex: 1;
-    padding-left: 8px;
+    padding-left: 4px; /* Reduced padding */
     font-family: monospace;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .pattern-controls {
     display: flex;
     gap: 4px;
-    margin-left: 8px;
+    margin-left: 6px; /* Reduced margin */
+    white-space: nowrap;
 }
 
 .btn-icon {
@@ -1091,4 +1111,178 @@ input[type="file"]::-webkit-file-upload-button {
     color: var(--text-muted);
     font-style: italic;
     padding: 40px;
+}
+
+/* Config Panel Styles (New) */
+.config-panel {
+    background-color: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 20px;
+}
+
+.config-header {
+    display: flex;
+    justify-content: flex-start; /* Changed from space-between to flex-start */
+    align-items: center;
+    margin-bottom: 10px;
+    gap: 15px; /* Add spacing between header and selector */
+}
+
+.config-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    text-align: left;
+    min-width: fit-content; /* Ensure header doesn't shrink */
+}
+
+.config-selector {
+    width: 220px; /* Set appropriate width */
+    flex-shrink: 0; /* Prevent selector from shrinking */
+}
+
+.add-field-input {
+    display: flex;
+    gap: 8px;
+}
+
+.add-field-input input {
+    flex: 1;
+}
+
+.add-field-input button {
+    width: auto;
+    padding: 6px 12px;
+}
+
+.pattern-list {
+    max-height: 200px;
+    overflow-y: auto;
+    margin-bottom: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--bg-color);
+}
+
+/* Add styles for the header row */
+.pattern-list-header {
+    display: flex;
+    align-items: center;
+    padding: 8px 10px;
+    background-color: var(--surface-color);
+    border-bottom: 1px solid var(--border-color);
+    font-weight: 500;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.pattern-list-header .pattern-name,
+.pattern-list-header .pattern-value {
+    color: var(--text-muted);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Remove extra borders in the pattern rows container */
+#patternRows {
+    border-top: none;
+}
+
+.pattern-list:empty:before {
+    content: 'No fields defined yet. Add fields above.';
+    padding: 16px;
+    text-align: center;
+    color: var(--text-muted);
+    display: block;
+}
+
+/* Make sure row styles are consistent */
+.pattern-row {
+    display: flex;
+    align-items: center;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.pattern-row:last-child {
+    border-bottom: none;
+}
+
+.config-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 10px;
+}
+
+.config-actions button {
+    width: auto;
+    padding: 6px 14px;
+}
+
+/* Compact form group in config panel */
+.config-panel .form-group {
+    margin-bottom: 10px;
+}
+
+.config-panel .form-group label {
+    margin-bottom: 4px;
+    font-size: 13px;
+}
+
+/* Generate Controls */
+.generate-controls {
+    margin-bottom: 16px;
+}
+
+.generate-controls .form-row {
+    align-items: flex-end;
+    margin-bottom: 0;
+}
+
+.generate-controls .form-group {
+    margin-bottom: 0;
+    flex: 0 0 auto; /* Change from flex: 1 to prevent equal stretching */
+    width: auto; /* Allow natural width based on content */
+}
+
+/* Set specific heights for format select, rows input, and generate button */
+.generate-controls select[name="format"],
+.generate-controls input[name="rows"],
+.generate-controls button {
+    height: 42px; /* Set a consistent height */
+    box-sizing: border-box;
+    padding: 8px 12px;
+    line-height: 24px; /* Set a consistent line height */
+}
+
+/* Set specific widths for format and rows inputs */
+.generate-controls select[name="format"] {
+    width: 120px; /* Narrower width for format dropdown */
+}
+
+.generate-controls input[name="rows"] {
+    width: 120px; /* Narrower width for number input */
+}
+
+.generate-button-container {
+    align-self: flex-end;
+    margin-bottom: 0;
+    min-width: 120px; /* Ensure button has enough space */
+    margin-right: 0; /* Remove right margin from last element */
+}
+
+/* Make the labels and inputs more compact */
+.generate-controls label {
+    margin-bottom: 6px;
+    font-size: 14px;
+}
+
+/* Adjust spacing for input and select */
+.generate-controls input,
+.generate-controls select {
+    padding: 8px 12px;
 }

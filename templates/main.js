@@ -65,17 +65,17 @@ document.getElementById('fileInput').addEventListener('change', async function(e
             console.error('Error fetching tables:', error);
         }
     } else {
-        // For non-SQLite files, update preview directly
+        // for non-SQLite files, update preview directly
         updatePreview();
     }
 });
 
-// Add event listener for output format changes
+// event listener for output format changes
 document.getElementById('outputFormat').addEventListener('change', function() {
     updatePreview();
 });
 
-// Add event listener for table selection changes
+// event listener for table selection changes
 document.getElementById('tableSelect').addEventListener('change', function() {
     updatePreview();
 });
@@ -93,7 +93,7 @@ function deselectAllTables() {
     for (let i = 0; i < options.length; i++) {
         options[i].selected = false;
     }
-    // No preview update as no table is selected
+    // no preview update as no table is selected
     document.getElementById('previewContainer').style.display = 'none';
 }
 
@@ -106,7 +106,7 @@ async function updatePreview() {
         return;
     }
 
-    // Show loading indicator in preview
+    // show loading indicator in preview
     const previewData = document.getElementById('previewData');
     previewData.textContent = 'Loading preview...';
 
@@ -376,12 +376,12 @@ async function handleGeneration() {
         return;
     }
 
-    if (!selectedConfig) {
-        alert('Please select a pattern configuration');
+    if (selectedConfig === 'new' || !selectedConfig) {
+        alert('Please save your configuration before generating data');
         return;
     }
 
-    const button = form.querySelector('button[type="button"]');
+    const button = document.querySelector('#generateForm button[type="button"]');
     button.disabled = true;
     button.textContent = 'Generating...';
 
@@ -489,36 +489,6 @@ function makeDraggable(element) {
     function closeDragElement() {
         document.onmouseup = null;
         document.onmousemove = null;
-    }
-}
-
-// load available configs
-async function loadConfigs() {
-    try {
-        const response = await fetch('/list-configs', {
-            method: 'POST'
-        });
-        
-        if (!response.ok) {
-            throw new Error('Failed to load configurations');
-        }
-        
-        const result = await response.json();
-        configs = result.configs;
-        
-        // populate config selection
-        const configSelect = document.getElementById('configSelect');
-        configSelect.innerHTML = '';
-        
-        configs.forEach(config => {
-            const option = document.createElement('option');
-            option.value = config;
-            option.textContent = config;
-            configSelect.appendChild(option);
-        });
-    } catch (error) {
-        console.error('Error loading configs:', error);
-        alert('Failed to load configurations: ' + error.message);
     }
 }
 
@@ -1099,33 +1069,6 @@ function closePatternModal() {
     currentTokens = [];
 }
 
-// open save config dialog
-function saveConfig() {
-    // should have at least one field
-    if (currentConfig.headers.length === 0) {
-        alert('Configuration must have at least one field');
-        return;
-    }
-    
-    // ensure that a pattern is defined for each field
-    let missingPatterns = [];
-    currentConfig.headers.forEach(header => {
-        if (!currentConfig.patterns[header]) {
-            missingPatterns.push(header);
-        }
-    });
-    // tell the user which fields need patterns
-    if (missingPatterns.length > 0) {
-        alert(`Please define patterns for these fields: ${missingPatterns.join(', ')}`);
-        return;
-    }
-    
-    // show the save dialog with current config name
-    const configNameInput = document.getElementById('configNameInput');
-    document.getElementById('saveConfigName').value = configNameInput.value || 'new_config.json';
-    document.getElementById('saveConfigModal').style.display = 'block';
-}
-
 async function confirmSaveConfig() {
     const configName = document.getElementById('saveConfigName').value.trim();
     
@@ -1183,6 +1126,302 @@ function closePatternBuilder() {
 
 document.addEventListener('DOMContentLoaded', function() {
 
+    const tooltips = document.querySelectorAll('.tooltip');
+    tooltips.forEach(tooltip => {
+        const tooltipText = tooltip.querySelector('.tooltiptext');
+        tooltip.addEventListener('mouseover', () => {
+            tooltipText.style.visibility = 'visible';
+            tooltipText.style.opacity = '0.9';
+        });
+        tooltip.addEventListener('mouseout', () => {
+            tooltipText.style.visibility = 'hidden';
+            tooltipText.style.opacity = '0';
+        });
+    });
+});
+
+// Variable to store the current configuration
+let currentConfig = {
+    headers: [],
+    patterns: {}
+};
+
+// load available configs
+async function loadConfigs() {
+    try {
+        const response = await fetch('/list-configs', {
+            method: 'POST'
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to load configurations');
+        }
+        
+        const result = await response.json();
+        configs = result.configs;
+        
+        // populate config selection
+        const configSelect = document.getElementById('configSelect');
+        
+        // Clear all options except "Create New"
+        while (configSelect.options.length > 1) {
+            configSelect.remove(1);
+        }
+        
+        // Add configurations to dropdown
+        configs.forEach(config => {
+            const option = document.createElement('option');
+            option.value = config;
+            option.textContent = config;
+            configSelect.appendChild(option);
+        });
+        
+        // If we have configurations, select the first one
+        if (configs.length > 0) {
+            configSelect.value = configs[0];
+            loadSelectedConfig();
+        } else {
+            // No configurations, select "Create New"
+            configSelect.value = "new";
+            createNewConfig();
+        }
+    } catch (error) {
+        console.error('Error loading configs:', error);
+        alert('Failed to load configurations: ' + error.message);
+    }
+}
+
+// Load the selected configuration
+async function loadSelectedConfig() {
+    const configSelect = document.getElementById('configSelect');
+    const selectedConfig = configSelect.value;
+    
+    // Handle "Create New" option
+    if (selectedConfig === "new") {
+        createNewConfig();
+        return;
+    }
+    
+    try {
+        const response = await fetch('/get-config', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                config: selectedConfig
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to load configuration');
+        }
+        
+        const result = await response.json();
+        currentConfig = result.config;
+        
+        // Hide the config name input when loading an existing config
+        document.getElementById('configNameContainer').style.display = 'none';
+        
+        // Render the pattern rows
+        renderPatternRows();
+    } catch (error) {
+        console.error('Error loading config:', error);
+        alert('Failed to load configuration: ' + error.message);
+    }
+}
+
+// Create a new configuration
+function createNewConfig() {
+    currentConfig = {
+        headers: [],
+        patterns: {}
+    };
+    
+    // Show the config name input for new configurations
+    const configNameContainer = document.getElementById('configNameContainer');
+    configNameContainer.style.display = 'block';
+    document.getElementById('configNameInput').value = 'new_config.json';
+    
+    // Render empty pattern rows
+    renderPatternRows();
+}
+
+// render pattern rows based on current config
+function renderPatternRows() {
+    const rowsContainer = document.getElementById('patternRows');
+    rowsContainer.innerHTML = '';
+    
+    if (!currentConfig || !currentConfig.headers || !currentConfig.patterns) {
+        console.warn('No valid configuration to render');
+        return;
+    }
+    
+    currentConfig.headers.forEach(header => {
+        const pattern = currentConfig.patterns[header] || '';
+        
+        const row = document.createElement('div');
+        row.className = 'pattern-row';
+        
+        // pattern name cell
+        const nameCell = document.createElement('div');
+        nameCell.className = 'pattern-name';
+        nameCell.textContent = header;
+        row.appendChild(nameCell);
+        
+        // pattern value cell
+        const valueCell = document.createElement('div');
+        valueCell.className = 'pattern-value';
+        valueCell.textContent = pattern;
+        row.appendChild(valueCell);
+        
+        // controls cell
+        const controlsCell = document.createElement('div');
+        controlsCell.className = 'pattern-controls';
+        
+        // edit pattern
+        const editButton = document.createElement('button');
+        editButton.className = 'btn-icon';
+        editButton.textContent = 'Edit';
+        editButton.onclick = function() { editPattern(header); };
+        controlsCell.appendChild(editButton);
+        
+        // delete pattern
+        const deleteButton = document.createElement('button');
+        deleteButton.className = 'btn-icon';
+        deleteButton.textContent = 'Delete';
+        deleteButton.onclick = function() { deletePattern(header); };
+        controlsCell.appendChild(deleteButton);
+        
+        row.appendChild(controlsCell);
+        rowsContainer.appendChild(row);
+    });
+}
+
+function addNewField() {
+    const fieldName = document.getElementById('newFieldName').value.trim();
+    
+    if (!fieldName) {
+        alert('Please enter a field name');
+        return;
+    }
+    
+    if (currentConfig.headers.includes(fieldName)) {
+        alert('Field already exists');
+        return;
+    }
+    
+    currentConfig.headers.push(fieldName);
+    currentConfig.patterns[fieldName] = '';
+    
+    document.getElementById('newFieldName').value = '';
+    renderPatternRows();
+}
+
+function saveConfig() {
+    // should have at least one field
+    if (currentConfig.headers.length === 0) {
+        alert('Configuration must have at least one field');
+        return;
+    }
+    
+    // ensure that a pattern is defined for each field
+    let missingPatterns = [];
+    currentConfig.headers.forEach(header => {
+        if (!currentConfig.patterns[header]) {
+            missingPatterns.push(header);
+        }
+    });
+    
+    // tell the user which fields need patterns
+    if (missingPatterns.length > 0) {
+        alert(`Please define patterns for these fields: ${missingPatterns.join(', ')}`);
+        return;
+    }
+    
+    // for a new configuration, use the value from configNameInput
+    // for existing configurations, use the selected value from the dropdown
+    const configSelect = document.getElementById('configSelect');
+    let configName;
+    
+    if (configSelect.value === "new") {
+        configName = document.getElementById('configNameInput').value.trim();
+        if (!configName) {
+            alert('Please enter a configuration name');
+            return;
+        }
+    } else {
+        configName = configSelect.value;
+    }
+    
+    // add .json extension if not present
+    if (!configName.endsWith('.json')) {
+        configName += '.json';
+    }
+    
+    // show confirmation for overwriting existing config
+    if (configs.includes(configName) && !confirm(`Configuration "${configName}" already exists. Overwrite?`)) {
+        return;
+    }
+    
+    saveConfigToServer(configName);
+}
+
+async function saveConfigToServer(configName) {
+    try {
+        const response = await fetch('/save-config', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                config_name: configName,
+                config_data: currentConfig
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to save configuration');
+        }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('Configuration saved successfully');
+            
+            // reload configs and select the newly saved one
+            await loadConfigs();
+            const configSelect = document.getElementById('configSelect');
+            configSelect.value = configName;
+            loadSelectedConfig();
+        } else {
+            alert('Failed to save configuration: ' + result.message);
+        }
+    } catch (error) {
+        console.error('Error saving config:', error);
+        alert('Failed to save configuration: ' + error.message);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelector('.preview-close').onclick = () => {
+        document.getElementById('previewModal').style.display = 'none';
+    };
+
+    const loadMoreBtn = document.getElementById('loadMore');
+    if (loadMoreBtn) {
+        loadMoreBtn.onclick = loadMoreData;
+    }
+
+    const finalizeBtn = document.getElementById('finalizeConversion');
+    if (finalizeBtn) {
+        finalizeBtn.addEventListener('click', finalizeConversion);
+    }
+
+    makeDraggable(document.getElementById('previewModal'));
+    loadConfigs(); // load available configurations on page load
+    
+    // add event listeners for tooltips
     const tooltips = document.querySelectorAll('.tooltip');
     tooltips.forEach(tooltip => {
         const tooltipText = tooltip.querySelector('.tooltiptext');
