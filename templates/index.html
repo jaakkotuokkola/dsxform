@@ -19,16 +19,31 @@
                 <h2>Convert Data</h2>
                 <p class="section-description">Transform structured data between different formats</p>
                 <div class="convert-form">
-                    <div class="form-group">
-                        <label>Input File:</label>
-                        <div class="file-input-group">
-                            <input type="file" 
-                                   name="file" 
-                                   id="fileInput" 
-                                   accept=".csv,.json,.sqlite,.xml"
-                                   required>
+                    <div class="form-row">
+                        <div class="form-group file-input-container">
+                            <label>Input File:</label>
+                            <div class="file-input-group">
+                                <input type="file" 
+                                       name="file" 
+                                       id="fileInput" 
+                                       accept=".csv,.json,.sqlite,.xml"
+                                       required>
+                            </div>
+                        </div>
+                        <div class="form-group output-format-container">
+                            <label>Convert To:</label>
+                            <select name="output_format" id="outputFormat" required>
+                                <option value="csv">CSV</option>
+                                <option value="json">JSON</option>
+                                <option value="sqlite">SQLite</option>
+                                <option value="xml">XML</option>
+                            </select>
+                        </div>
+                        <div class="form-group convert-button-container">
+                            <button onclick="handleConversion(event)" type="button">Convert</button>
                         </div>
                     </div>
+                    
                     <div id="tableSelection" class="form-group">
                         <label>Select Tables:</label>
                         <p id="tableSelectionMessage" style="margin: 5px 0; font-size: 0.9em; color: #666;"></p>
@@ -39,16 +54,13 @@
                             <a onclick="deselectAllTables()">Deselect All</a>
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label>Convert To:</label>
-                        <select name="output_format" id="outputFormat" required>
-                            <option value="csv">CSV</option>
-                            <option value="json">JSON</option>
-                            <option value="sqlite">SQLite</option>
-                            <option value="xml">XML</option>
-                        </select>
+                    
+                    <div id="previewContainer" class="preview-container">
+                        <h3>Preview</h3>
+                        <pre id="previewData" class="preview-data">
+Select an input file to see preview
+                        </pre>
                     </div>
-                    <button onclick="handleConversion(event)" type="button">Convert</button>
                 </div>
                 <div id="conversionResult" style="display: none; margin-top: 24px;">
                     <div class="conversion-summary"></div>

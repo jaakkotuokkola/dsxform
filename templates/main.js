@@ -17,7 +17,10 @@ document.getElementById('fileInput').addEventListener('change', async function(e
     tableSelection.style.display = 'none';
     selectedTable = null;
     
-    if (!file) return;
+    if (!file) {
+        document.getElementById('previewData').textContent = 'Select an input file to see preview';
+        return;
+    }
 
     // check if file extension is supported
     const extension = file.name.toLowerCase().split('.').pop();
@@ -53,13 +56,28 @@ document.getElementById('fileInput').addEventListener('change', async function(e
                     // select first table by default
                     if (jsonData.tables.length > 0) {
                         select.options[0].selected = true;
+                        // trigger preview update for the selected table
+                        setTimeout(() => updatePreview(), 0);
                     }
                 }
             }
         } catch (error) {
             console.error('Error fetching tables:', error);
         }
+    } else {
+        // For non-SQLite files, update preview directly
+        updatePreview();
     }
+});
+
+// Add event listener for output format changes
+document.getElementById('outputFormat').addEventListener('change', function() {
+    updatePreview();
+});
+
+// Add event listener for table selection changes
+document.getElementById('tableSelect').addEventListener('change', function() {
+    updatePreview();
 });
 
 function selectAllTables() {
@@ -67,6 +85,7 @@ function selectAllTables() {
     for (let i = 0; i < options.length; i++) {
         options[i].selected = true;
     }
+    updatePreview();
 }
 
 function deselectAllTables() {
@@ -74,25 +93,22 @@ function deselectAllTables() {
     for (let i = 0; i < options.length; i++) {
         options[i].selected = false;
     }
+    // No preview update as no table is selected
+    document.getElementById('previewContainer').style.display = 'none';
 }
 
-async function handleConversion(e) {
-    e.preventDefault();
-    
+async function updatePreview() {
     const fileInput = document.getElementById('fileInput');
     const outputFormat = document.getElementById('outputFormat').value;
     const file = fileInput.files[0];
     
     if (!file) {
-        alert('Please select a file');
         return;
     }
 
-    // show loading state
-    const button = e.target;
-    const originalText = button.textContent;
-    button.textContent = 'Generating Preview...';
-    button.disabled = true;
+    // Show loading indicator in preview
+    const previewData = document.getElementById('previewData');
+    previewData.textContent = 'Loading preview...';
 
     const formData = new FormData();
     formData.append('file', file);
@@ -117,7 +133,7 @@ async function handleConversion(e) {
         const result = await response.json();
         
         if (result.type === 'preview') {
-            showPreview(result);
+            displayPreview(result);
         } else if (result.type === 'semi_data_warning') {
             if (confirm(result.message)) {
                 formData.append('flatten', 'true');
@@ -132,15 +148,107 @@ async function handleConversion(e) {
                 
                 const retryResult = await retryResponse.json();
                 if (retryResult.type === 'preview') {
-                    showPreview(retryResult);
+                    displayPreview(retryResult);
+                }
+            } else {
+                previewContainer.style.display = 'none';
+            }
+        }
+    } catch (error) {
+        previewData.textContent = 'Error: ' + error.message;
+    }
+}
+
+function displayPreview(result) {
+    previewData.tempPath = result.temp_path;
+    previewData.format = document.getElementById('outputFormat').value;
+    
+    const previewContainer = document.getElementById('previewContainer');
+    const previewDataElement = document.getElementById('previewData');
+    previewContainer.style.display = 'block';
+    
+    previewDataElement.className = `preview-data ${previewData.format}-view`;
+    
+    if (previewData.format === 'sqlite') {
+        previewDataElement.innerHTML = result.data;  // use HTML for grid view
+    } else {
+        previewDataElement.textContent = result.data;  // use text for other formats
+    }
+}
+
+async function handleConversion(e) {
+    e.preventDefault();
+    
+    const fileInput = document.getElementById('fileInput');
+    const outputFormat = document.getElementById('outputFormat').value;
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        alert('Please select a file');
+        return;
+    }
+
+    // show loading state
+    const button = e.target;
+    const originalText = button.textContent;
+    button.textContent = 'Converting...';
+    button.disabled = true;
+
+    try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('output_format', outputFormat);
+        
+        // add table selection if SQLite
+        const tableSelect = document.getElementById('tableSelect');
+        if (tableSelect.style.display !== 'none') {
+            const selectedOptions = Array.from(tableSelect.selectedOptions);
+            if (selectedOptions.length > 0) {
+                if (selectedOptions.length === 1) {
+                    formData.append('table', selectedOptions[0].value);
+                } else {
+                    formData.append('table', '*');
+                }
+            }
+        }
+
+        // convert and handle response
+        const response = await fetch('/convert', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            throw new Error(await response.text());
+        }
+
+        const result = await response.json();
+        if (result.type === 'success') {
+            alert('Conversion completed successfully!');
+        } else if (result.type === 'semi_data_warning') {
+            if (confirm(result.message)) {
+                formData.append('flatten', 'true');
+                const retryResponse = await fetch('/convert', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!retryResponse.ok) {
+                    throw new Error(await retryResponse.text());
+                }
+
+                const retryResult = await retryResponse.json();
+                if (retryResult.type === 'success') {
+                    alert('Conversion completed successfully!');
                 }
             }
         }
     } catch (error) {
-        alert('Error: ' + error.message);
+        console.error('Conversion error:', error);
+        alert('Error during conversion: ' + error.message);
     } finally {
-        button.textContent = originalText;
         button.disabled = false;
+        button.textContent = originalText;
     }
 }
 
