@@ -269,10 +269,6 @@ function showPreview(result) {
     } else {
         previewContainer.textContent = result.data;  // use text for other formats
     }
-    
-    document.getElementById('previewModal').style.display = 'block';
-    // reinitialize dragging each time modal is shown
-    makeDraggable(document.getElementById('previewModal'));
 }
 
 async function getSaveFilePath(title, defaultName) {
@@ -293,75 +289,6 @@ async function getSaveFilePath(title, defaultName) {
     
     const result = await response.json();
     return result.path;
-}
-
-async function finalizeConversion() {
-    const fileInput = document.getElementById('fileInput');
-    const outputFormat = document.getElementById('outputFormat').value;
-    const file = fileInput.files[0];
-    
-    const button = document.getElementById('finalizeConversion');
-    button.disabled = true;
-    button.textContent = 'Converting...';
-
-    try {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('output_format', outputFormat);
-        
-        // add table selection if SQLite
-        const tableSelect = document.getElementById('tableSelect');
-        if (tableSelect.style.display !== 'none') {
-            const selectedOptions = Array.from(tableSelect.selectedOptions);
-            if (selectedOptions.length > 0) {
-                if (selectedOptions.length === 1) {
-                    formData.append('table', selectedOptions[0].value);
-                } else {
-                    formData.append('table', '*');
-                }
-            }
-        }
-
-        // convert and handle response
-        const response = await fetch('/convert', {
-            method: 'POST',
-            body: formData
-        });
-
-        if (!response.ok) {
-            throw new Error(await response.text());
-        }
-
-        const result = await response.json();
-        if (result.type === 'success') {
-            document.getElementById('previewModal').style.display = 'none';
-            alert('Conversion completed successfully!');
-        } else if (result.type === 'semi_data_warning') {
-            if (confirm(result.message)) {
-                formData.append('flatten', 'true');
-                const retryResponse = await fetch('/convert', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                if (!retryResponse.ok) {
-                    throw new Error(await retryResponse.text());
-                }
-
-                const retryResult = await retryResponse.json();
-                if (retryResult.type === 'success') {
-                    document.getElementById('previewModal').style.display = 'none';
-                    alert('Conversion completed successfully!');
-                }
-            }
-        }
-    } catch (error) {
-        console.error('Conversion error:', error);
-        alert('Error during conversion: ' + error.message);
-    } finally {
-        button.disabled = false;
-        button.textContent = 'Save Conversion';
-    }
 }
 
 async function handleGeneration() {
@@ -418,79 +345,8 @@ async function handleGeneration() {
 
 // event listeners
 document.addEventListener('DOMContentLoaded', function() {
-    document.querySelector('.preview-close').onclick = () => {
-        document.getElementById('previewModal').style.display = 'none';
-    };
-
-    const loadMoreBtn = document.getElementById('loadMore');
-    if (loadMoreBtn) {
-        loadMoreBtn.onclick = loadMoreData;
-    }
-
-    const finalizeBtn = document.getElementById('finalizeConversion');
-    if (finalizeBtn) {
-        finalizeBtn.addEventListener('click', finalizeConversion);
-        console.log('Finalize button listener added');
-    }
-
-    makeDraggable(document.getElementById('previewModal'));
     loadConfigs();
 });
-
-function makeDraggable(element) {
-    const header = element.querySelector('.pattern-builder-header') || 
-                  element.querySelector('.preview-header');
-    
-    if (!header) {
-        console.error('No header found for draggable element');
-        return;
-    }
-    
-    let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-    
-    header.onmousedown = dragMouseDown;
-
-    function dragMouseDown(e) {
-        e.preventDefault();
-        // get mouse position at startup
-        pos3 = e.clientX;
-        pos4 = e.clientY;
-        document.onmouseup = closeDragElement;
-        document.onmousemove = elementDrag;
-    }
-
-    function elementDrag(e) {
-        e.preventDefault();
-        // calculate new positions
-        pos1 = pos3 - e.clientX;
-        pos2 = pos4 - e.clientY;
-        pos3 = e.clientX;
-        pos4 = e.clientY;
-        
-        let newTop = element.offsetTop - pos2;
-        let newLeft = element.offsetLeft - pos1;
-        
-        // get viewport and element dimensions
-        const viewportHeight = window.innerHeight;
-        const viewportWidth = window.innerWidth;
-        const elementHeight = element.offsetHeight;
-        const elementWidth = element.offsetWidth;
-        
-        // keep element within bounds
-        newTop = Math.max(0, newTop);
-        newLeft = Math.max(0, newLeft);
-        newTop = Math.min(viewportHeight - elementHeight, newTop);
-        newLeft = Math.min(viewportWidth - elementWidth, newLeft);
-        
-        element.style.top = newTop + "px";
-        element.style.left = newLeft + "px";
-    }
-
-    function closeDragElement() {
-        document.onmouseup = null;
-        document.onmousemove = null;
-    }
-}
 
 // new config creation
 function newConfig() {
@@ -604,26 +460,6 @@ function renderPatternRows() {
         row.appendChild(controlsCell);
         rowsContainer.appendChild(row);
     });
-}
-
-function addNewField() {
-    const fieldName = document.getElementById('newFieldName').value.trim();
-    
-    if (!fieldName) {
-        alert('Please enter a field name');
-        return;
-    }
-    
-    if (currentConfig.headers.includes(fieldName)) {
-        alert('Field already exists');
-        return;
-    }
-    
-    currentConfig.headers.push(fieldName);
-    currentConfig.patterns[fieldName] = '';
-    
-    document.getElementById('newFieldName').value = '';
-    renderPatternRows();
 }
 
 // function for editing existing pattern
@@ -1404,21 +1240,7 @@ async function saveConfigToServer(configName) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    document.querySelector('.preview-close').onclick = () => {
-        document.getElementById('previewModal').style.display = 'none';
-    };
 
-    const loadMoreBtn = document.getElementById('loadMore');
-    if (loadMoreBtn) {
-        loadMoreBtn.onclick = loadMoreData;
-    }
-
-    const finalizeBtn = document.getElementById('finalizeConversion');
-    if (finalizeBtn) {
-        finalizeBtn.addEventListener('click', finalizeConversion);
-    }
-
-    makeDraggable(document.getElementById('previewModal'));
     loadConfigs(); // load available configurations on page load
     
     // add event listeners for tooltips

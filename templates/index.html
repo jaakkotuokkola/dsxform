@@ -30,18 +30,6 @@
                                        required>
                             </div>
                         </div>
-                        <div class="form-group output-format-container">
-                            <label>Convert To:</label>
-                            <select name="output_format" id="outputFormat" required>
-                                <option value="csv">CSV</option>
-                                <option value="json">JSON</option>
-                                <option value="sqlite">SQLite</option>
-                                <option value="xml">XML</option>
-                            </select>
-                        </div>
-                        <div class="form-group convert-button-container">
-                            <button onclick="handleConversion(event)" type="button">Convert</button>
-                        </div>
                     </div>
                     
                     <div id="tableSelection" class="form-group">
@@ -56,7 +44,20 @@
                     </div>
                     
                     <div id="previewContainer" class="preview-container">
-                        <h3>Preview</h3>
+                        <div class="form-row">
+                            <div class="form-group output-format-container">
+                                <label>Convert To:</label>
+                                <select name="output_format" id="outputFormat" required>
+                                    <option value="csv">CSV</option>
+                                    <option value="json">JSON</option>
+                                    <option value="sqlite">SQLite</option>
+                                    <option value="xml">XML</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <button onclick="handleConversion(event)" type="button" class="convertBtn">Convert</button>
+                            </div>
+                        </div>
                         <pre id="previewData" class="preview-data">
 Select an input file to see preview
                         </pre>
@@ -136,65 +137,9 @@ Select an input file to see preview
                     
                     <!-- Save configuration button -->
                     <div class="config-actions">
-                        <button type="button" onclick="saveConfig()">Save Configuration</button>
+                        <button type="button" class="saveConfig" onclick="saveConfig()">Save Configuration</button>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- preview modal -->
-    <div id="previewModal" class="preview-modal">
-        <div class="preview-content">
-            <div class="preview-header">
-                <h3>Preview Converted Data</h3>
-                <span class="preview-close">&times;</span>
-            </div>
-            <pre id="previewData" class="preview-data">
-                <!-- preview content will be inserted here -->
-            </pre>
-            <div class="preview-footer">
-                <button id="finalizeConversion" type="button">Save Conversion</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- pattern builder modal -->
-    <div id="patternBuilderModal" class="pattern-builder-modal">
-        <div class="pattern-builder-content">
-            <div class="pattern-builder-header">
-                <h3>Pattern Builder</h3>
-                <span class="pattern-builder-close" onclick="closePatternBuilder()">&times;</span>
-            </div>
-            <div class="pattern-builder-body">
-                <!-- Config Name -->
-                <div class="form-group">
-                    <label>Configuration Name:</label>
-                    <input type="text" id="configNameInput" placeholder="Config name..." />
-                </div>
-                
-                <!-- Headers/Fields section -->
-                <div class="pattern-fields">
-                    <div class="pattern-field">
-                        <div class="form-group">
-                            <label>Add New Field:</label>
-                            <div style="display: flex; gap: 8px;">
-                                <input type="text" id="newFieldName" placeholder="Field name..." style="flex: 1;">
-                                <button type="button" onclick="addNewField()" style="width: auto;">Add</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Pattern rows -->
-                <div class="pattern-rows" id="patternRows">
-                    <!-- Pattern rows will be added dynamically -->
-                </div>
-            </div>
-            
-            <div class="pattern-builder-footer">
-                <button type="button" onclick="saveConfig()">Save Configuration</button>
-                <button type="button" onclick="closePatternBuilder()" style="background-color: #6c757d;">Cancel</button>
             </div>
         </div>
     </div>
@@ -310,10 +255,6 @@ Select an input file to see preview
             </div>
         </div>
     </div>
-    
-    <footer class="footer">
-        <!-- Footer content -->
-    </footer>
 
  <script src="main.js"></script>
 </body>
