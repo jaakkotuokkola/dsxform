@@ -72,7 +72,7 @@ Select an input file to see preview
                 <h2>Generate Data</h2>
                 <p class="section-description">Create mock data sets based on your defined patterns</p>
                 
-                <!-- Generation Controls (moved above config panel) -->
+                <!-- Generation Controls -->
                 <div id="generateForm" class="generate-controls">
                     <div class="form-row">
                         <div class="form-group">
@@ -112,32 +112,24 @@ Select an input file to see preview
                         <input type="text" id="configNameInput" placeholder="my_config.json">
                     </div>
                     
-                    <!-- Add new field form -->
-                    <div class="add-field-form">
-                        <div class="form-group">
-                            <label>Add New Field:</label>
-                            <div class="add-field-input">
-                                <input type="text" id="newFieldName" placeholder="Field name...">
-                                <button type="button" onclick="addNewField()">Add</button>
-                            </div>
-                        </div>
-                    </div>
-                    
                     <!-- Pattern fields list -->
                     <div class="pattern-list">
                         <div class="pattern-list-header">
                             <div class="pattern-name">Header</div>
                             <div class="pattern-value">Pattern</div>
                             <div class="pattern-controls"></div>
+                            <div class="pattern-add-field">
+                                <input type="text" id="newFieldName" placeholder="New field..." onkeydown="if(event.key==='Enter'){ addNewField(); }">
+                                <button type="button" onclick="addNewField()">+</button>
+                            </div>
                         </div>
                         <div id="patternRows">
                             <!-- Pattern rows will be added dynamically -->
                         </div>
                     </div>
                     
-                    <!-- Save configuration button -->
                     <div class="config-actions">
-                        <button type="button" class="saveConfig" onclick="saveConfig()">Save Configuration</button>
+                        <button type="button" class="saveConfig" onclick="saveConfig()">Save</button>
                     </div>
                 </div>
             </div>

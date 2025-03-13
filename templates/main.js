@@ -1,10 +1,11 @@
+
+// UX/UI logic for the main application browser interface
+
 function showTab(tabId, evt) {
     document.querySelectorAll('.tab').forEach(tab => {
-        tab.classList.remove('active');
-    });
+        tab.classList.remove('active');});
     document.querySelectorAll('.tab-buttons button').forEach(btn => {
-        btn.classList.remove('active');
-    });
+        btn.classList.remove('active');});
     document.getElementById(tabId).classList.add('active');
     evt.target.classList.add('active');
 }
@@ -22,7 +23,6 @@ document.getElementById('fileInput').addEventListener('change', async function(e
         return;
     }
 
-    // check if file extension is supported
     const extension = file.name.toLowerCase().split('.').pop();
     const supportedFormats = ['csv', 'json', 'sqlite', 'xml'];
     
@@ -106,7 +106,6 @@ async function updatePreview() {
         return;
     }
 
-    // show loading indicator in preview
     const previewData = document.getElementById('previewData');
     previewData.textContent = 'Loading preview...';
 
@@ -493,7 +492,7 @@ function deletePattern(field) {
     }
 }
 
-// function for adding a one of the supported tokens to the pattern
+// function for adding a one of the supported rules to the pattern
 function addToPattern(component) {
     const tokens = tokenizePattern(component);
     const editableTokens = ['[a-z]', '[A-Z]', '[0-9]', '{3}', '{1,5}', '(a|b)', 'abc'];
@@ -976,7 +975,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Variable to store the current configuration
 let currentConfig = {
     headers: [],
     patterns: {}
@@ -1027,12 +1025,11 @@ async function loadConfigs() {
     }
 }
 
-// Load the selected configuration
 async function loadSelectedConfig() {
     const configSelect = document.getElementById('configSelect');
     const selectedConfig = configSelect.value;
     
-    // Handle "Create New" option
+    // handle "Create New" option
     if (selectedConfig === "new") {
         createNewConfig();
         return;
@@ -1056,10 +1053,9 @@ async function loadSelectedConfig() {
         const result = await response.json();
         currentConfig = result.config;
         
-        // Hide the config name input when loading an existing config
+        // hide the config name input when loading an existing config
         document.getElementById('configNameContainer').style.display = 'none';
         
-        // Render the pattern rows
         renderPatternRows();
     } catch (error) {
         console.error('Error loading config:', error);
@@ -1067,7 +1063,6 @@ async function loadSelectedConfig() {
     }
 }
 
-// Create a new configuration
 function createNewConfig() {
     currentConfig = {
         headers: [],

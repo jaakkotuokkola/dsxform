@@ -1,12 +1,12 @@
 :root {
-    --primary-color: #2b4c3a;
+    --primary-color: #64b687;
     --primary-hover: #3a6548;
-    --bg-color: #ffffff;
-    --surface-color: #f0f2f5;
-    --border-color: #cfd4da;
-    --text-color: #1a1a1a;
-    --text-muted: #5a6572;
-    --focus-ring: rgba(43, 76, 58, 0.25);
+    --bg-color: rgba(33, 33, 33, .9); 
+    --surface-color: #2f2f2f;
+    --border-color: #444;
+    --text-color: #ececec;
+    --text-muted: #8a9199;
+    --focus-ring: rgba(100, 182, 135, 0.25);
     --error-color: #dc3545;
     --success-color: #28a745;
 }
@@ -414,7 +414,7 @@ h2 {
     background-color: var(--surface-color);
     border: 1px solid var(--border-color);
     border-radius: 6px;
-    padding: 16px;
+    padding: 8px;
     margin-bottom: 20px;
 }
 
@@ -458,7 +458,6 @@ h2 {
 
 .sample-item {
     padding: 6px 8px;
-    background-color: #f8f8f8;
     border-radius: 3px;
     margin-bottom: 4px;
     font-family: monospace;
@@ -467,17 +466,6 @@ h2 {
 .configs-dropdown {
     width: 100%;
     margin-bottom: 16px;
-}
-
-.config-actions {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 16px;
-}
-
-.config-actions button {
-    flex: 1;
-    min-width: 0;
 }
 
 /* Modal Dialog */
@@ -497,7 +485,7 @@ h2 {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background-color: var(--bg-color);
+    background-color:  rgba(33, 33, 33);
     border-radius: 8px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
     padding: 24px;
@@ -545,7 +533,6 @@ h2 {
 .tooltip {
     position: relative;
     display: inline-block;
-    border-bottom: 1px dotted #ccc;
 }
 
 .tooltip .tooltiptext {
@@ -561,22 +548,19 @@ h2 {
     bottom: 125%;
     left: 50%;
     margin-left: -120px;
-    opacity: 0;
-    transition: opacity 0.3s;
     font-size: 12px;
     line-height: 1.4;
 }
 
 .tooltip:hover .tooltiptext {
     visibility: visible;
-    opacity: 0.9;
 }
 
 .pattern-row {
     display: flex;
     align-items: center;
     padding: 6px 10px;
-    border-bottom: 1px solid var(--border-color);
+    /*border-bottom: 1px solid var(--border-color);*/
 }
 
 .pattern-name {
@@ -600,8 +584,7 @@ h2 {
 
 .pattern-controls {
     display: flex;
-    gap: 4px;
-    margin-left: 6px; /* Reduced margin */
+    gap: 5px;
     white-space: nowrap;
 }
 
@@ -613,6 +596,16 @@ h2 {
     cursor: pointer;
     padding: 2px 6px;
     font-size: 12px;
+}
+.pattern-controls :nth-child(1) {
+    color: var(--text-color);
+    border: 1px solid  rgb(64, 64, 165, 0.4);
+    background-color: rgb(64, 64, 165, 0.3);
+}
+.pattern-controls :nth-child(2) {
+    color: var(--text-color);
+    border: 1px solid rgb(230, 2, 51, 0.4);
+    background-color: rgb(230, 2, 51, 0.3);
 }
 
 .pattern-component {
@@ -626,8 +619,7 @@ h2 {
     font-size: 12px;
 }
 
-/* Token Editor Styles - UPDATED */
-/* Remove duplicate token-container definition and keep just one */
+/* Token Editor Styles */
 .token-container {
     min-height: 40px;
     border: 1px solid var(--border-color);
@@ -637,7 +629,7 @@ h2 {
     flex-wrap: wrap;
     gap: 4px;
     align-items: center;
-    background-color: var(--bg-color);
+    background-color: var(--text-color);
     margin-bottom: 12px;
 }
 
@@ -658,7 +650,6 @@ h2 {
     box-sizing: border-box;
 }
 
-/* Fixed delete button style */
 .pattern-token .token-delete {
     position: absolute;
     right: 4px;
@@ -722,6 +713,7 @@ h2 {
 }
 
 /* Color variants for token types */
+/* note: change for better visibility of text*/
 .pattern-token:hover {
     background-color: rgba(43, 76, 58, 0.1);
 }
@@ -763,20 +755,6 @@ h2 {
 
 .pattern-token.dragging {
     opacity: 0.5;
-}
-
-/* Pattern token styles */
-.token-container {
-    min-height: 40px;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    padding: 8px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    align-items: center;
-    background-color: var(--bg-color);
-    margin-bottom: 12px;
 }
 
 /* Token editor - editable tokens */
@@ -893,6 +871,21 @@ h2 {
     border-radius: 6px;
     padding: 12px;
     margin-bottom: 20px;
+    min-height: fit-content; /* increased from default */
+    display: flex;
+    flex-direction: column;
+}
+
+/* Pattern list should grow inside the config panel */
+.pattern-list {
+    max-height: 255px; /* Remove max-height limitation */
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--bg-color);
+    overflow: hidden; 
 }
 
 .config-header {
@@ -930,15 +923,6 @@ h2 {
     padding: 6px 12px;
 }
 
-.pattern-list {
-    max-height: 200px;
-    overflow-y: auto;
-    margin-bottom: 12px;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    background-color: var(--bg-color);
-}
-
 /* Add styles for the header row */
 .pattern-list-header {
     display: flex;
@@ -950,6 +934,7 @@ h2 {
     position: sticky;
     top: 0;
     z-index: 1;
+    flex-shrink: 0; /* Don't allow header to shrink */
 }
 
 .pattern-list-header .pattern-name,
@@ -963,6 +948,8 @@ h2 {
 /* Remove extra borders in the pattern rows container */
 #patternRows {
     border-top: none;
+    overflow-y: auto;
+    flex-grow: 1;
 }
 
 .pattern-list:empty:before {
@@ -980,7 +967,8 @@ h2 {
 }
 
 .config-actions button {
-    width: auto;
+    width: 120px;
+    height: 42px;
     padding: 6px 14px;
 }
 
@@ -1049,4 +1037,49 @@ h2 {
 .generate-controls input,
 .generate-controls select {
     padding: 8px 12px;
+}
+
+.pattern-add-field button:hover {
+    background-color: var(--primary-hover);
+}
+
+/* Updated styles for inline add field in pattern list header */
+.pattern-list-header {
+    padding: 4px 6px; /* reduced padding */
+}
+.pattern-add-field {
+    position: relative;
+    display: inline-block;
+    width: 250px; /* wider container for input */
+}
+.pattern-add-field input {
+    width: 100%;
+    height: 36px;           /* increased height */
+    padding-right: 40px;      /* extra space for square button */
+    box-sizing: border-box;
+    font-size: 14px;
+    border: 1px solid var(--text-color);
+    border-radius: 4px;
+    background-color: var(--text-color);
+    padding-left: 10px;
+}
+.pattern-add-field button {
+    position: absolute;
+    top: 50%;
+    right: 4px;
+    transform: translateY(-50%);
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    width: 28px;            /* square dimensions */
+    height: 28px;
+    text-align: center;
+    padding: 0;
+    line-height: 32px;      /* center the + vertically */
+}
+.pattern-add-field button:hover {
+    background-color: var(--primary-hover);
 }
