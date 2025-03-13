@@ -1,4 +1,3 @@
-
 // UX/UI logic for the main application browser interface
 
 function showTab(tabId, evt) {
@@ -112,6 +111,8 @@ async function updatePreview() {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('output_format', outputFormat);
+    // Always apply flattening for previews to avoid unnecessary warnings
+    formData.append('flatten', 'true');
 
     // add any selected table for SQLite files
     const tableSelect = document.getElementById('tableSelect');
@@ -133,26 +134,8 @@ async function updatePreview() {
         
         if (result.type === 'preview') {
             displayPreview(result);
-        } else if (result.type === 'semi_data_warning') {
-            if (confirm(result.message)) {
-                formData.append('flatten', 'true');
-                const retryResponse = await fetch('/preview', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                if (!retryResponse.ok) {
-                    throw new Error(await retryResponse.text());
-                }
-                
-                const retryResult = await retryResponse.json();
-                if (retryResult.type === 'preview') {
-                    displayPreview(retryResult);
-                }
-            } else {
-                previewContainer.style.display = 'none';
-            }
         }
+        // Remove the semi_data_warning handling for preview
     } catch (error) {
         previewData.textContent = 'Error: ' + error.message;
     }
@@ -211,7 +194,32 @@ async function handleConversion(e) {
             }
         }
 
-        // convert and handle response
+        // first check if data requires flattening
+        const checkResponse = await fetch('/check-structure', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!checkResponse.ok) {
+            throw new Error(await checkResponse.text());
+        }
+
+        const checkResult = await checkResponse.json();
+        
+        let shouldFlatten = false;
+        
+        if (checkResult.type === 'semi_data_warning') {
+            // ask user about flattening before showing file dialog
+            if (confirm(checkResult.message)) {
+                shouldFlatten = true;
+            }
+        }
+        
+        if (shouldFlatten) {
+            formData.append('flatten', 'true');
+        }
+
+        //Now proceed with conversion
         const response = await fetch('/convert', {
             method: 'POST',
             body: formData
@@ -224,23 +232,6 @@ async function handleConversion(e) {
         const result = await response.json();
         if (result.type === 'success') {
             alert('Conversion completed successfully!');
-        } else if (result.type === 'semi_data_warning') {
-            if (confirm(result.message)) {
-                formData.append('flatten', 'true');
-                const retryResponse = await fetch('/convert', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                if (!retryResponse.ok) {
-                    throw new Error(await retryResponse.text());
-                }
-
-                const retryResult = await retryResponse.json();
-                if (retryResult.type === 'success') {
-                    alert('Conversion completed successfully!');
-                }
-            }
         }
     } catch (error) {
         console.error('Conversion error:', error);

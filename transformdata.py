@@ -619,15 +619,12 @@ class DataTransformer:
             elif input_format == 'xml':
                 data = self.read_xml(input_path)[:limit]
 
+            # For previews, always flatten if needed (no warnings)
             if isinstance(data, list) and data and output_format in ['csv', 'sqlite']:
                 if self.is_semiStruct(data):
                     if flatten:
                         data = self.flatten_data(data)
-                    else:
-                        return {
-                            "type": "semi_data_warning",
-                            "message": "Irregular or nested data detected. Flatten it for structured output?"
-                        }
+                    # Don't return warning for preview
 
             # format preview based on output format
             if output_format == 'csv':
@@ -957,6 +954,8 @@ class DataTransformerHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         if self.path == '/convert':
             self.handle_convert()
+        elif self.path == '/check-structure':
+            self.handle_check_structure()
         elif self.path == '/preview':
             self.handle_preview()
         elif self.path == '/load-more':
@@ -1018,6 +1017,8 @@ class DataTransformerHandler(BaseHTTPRequestHandler):
                 input_format = filename.rsplit('.', 1)[1].lower()
                 flatten = form.getvalue('flatten') == 'true'
                 table_name = form.getvalue('table')
+                # Check if we have a saved path from previous request
+                saved_path = form.getvalue('saved_path')
 
                 # special handling for SQLite input, to list tables
                 if (input_format == 'sqlite'):
@@ -1041,17 +1042,19 @@ class DataTransformerHandler(BaseHTTPRequestHandler):
                         self.wfile.write(json.dumps(response_data).encode())
                         return
 
-                # rest of the conversion logic
-                # show save dialog first
-                base_name = "converted_tables" if table_name == '*' else "converted"
-                output_path = get_save_dialog(
-                    title="Save Converted File",
-                    default_name=f"{base_name}.{output_format}"
-                )
-                
-                if not output_path:  # user cancelled
-                    os.unlink(input_path)
-                    return
+                # Get save path, but only if we don't already have one from a previous request
+                if not saved_path:
+                    base_name = "converted_tables" if table_name == '*' else "converted"
+                    output_path = get_save_dialog(
+                        title="Save Converted File",
+                        default_name=f"{base_name}.{output_format}"
+                    )
+                    
+                    if not output_path:  # user cancelled
+                        os.unlink(input_path)
+                        return
+                else:
+                    output_path = saved_path
 
                 # convert with table name (None means all tables, note: might better to force choosing)
                 table = None if table_name == '*' else table_name
@@ -1060,13 +1063,17 @@ class DataTransformerHandler(BaseHTTPRequestHandler):
                                       table=table,
                                       flatten=flatten)
                 
+                # If we get a warning about semi-structured data, include the saved path
+                if result.get('type') == 'semi_data_warning':
+                    result['saved_path'] = output_path
+                
                 self.send_response(200)
                 self.send_header('Content-Type', 'application/json')
                 self.end_headers()
                 self.wfile.write(json.dumps(result).encode())
 
             except NestedDataWarning:
-                self.send_response(200)  # Changed from 500 to 200
+                self.send_response(200)
                 self.send_header('Content-Type', 'application/json')
                 self.end_headers()
                 self.wfile.write(json.dumps({
@@ -1080,8 +1087,77 @@ class DataTransformerHandler(BaseHTTPRequestHandler):
         except Exception as e:
             self.send_error(500, str(e))
 
+    def handle_check_structure(self):
+        """Check if data requires flattening before conversion."""
+        try:
+            content_type = self.headers.get('Content-Type', '')
+            if not content_type.startswith('multipart/form-data'):
+                self.send_error(400, 'Expected multipart/form-data')
+                return
+
+            boundary = content_type.split('boundary=')[1].strip()
+            environ = {
+                'boundary': boundary,
+                'content-length': self.headers.get('Content-Length', 0),
+                'wsgi.input': self.rfile
+            }
+            
+            form = MultipartFormParser(environ)
+            file_data = form.getfile('file')
+            
+            if not file_data:
+                self.send_error(400, 'No file provided')
+                return
+
+            filename = file_data['filename']
+            output_format = form.getvalue('output_format')
+            
+            # Save uploaded file temporarily
+            input_path = os.path.join(UPLOAD_FOLDER, filename)
+            with open(input_path, 'wb') as f:
+                f.write(file_data['content'])
+
+            try:
+                input_format = filename.rsplit('.', 1)[1].lower()
+                
+                # Only check structure if output format requires structured data
+                if output_format in ['csv', 'sqlite']:
+                    # For JSON and XML, read the data and check structure
+                    if input_format in ['json', 'xml']:
+                        data = self.transformer._read_input(input_path, input_format)
+                        
+                        # Ensure data is a list for consistency
+                        if not isinstance(data, list):
+                            data = [data]
+                            
+                        if data and self.transformer.is_semiStruct(data):
+                            self.send_response(200)
+                            self.send_header('Content-Type', 'application/json')
+                            self.end_headers()
+                            self.wfile.write(json.dumps({
+                                "type": "semi_data_warning",
+                                "message": "Irregular or nested data detected. Flatten it for structured output?"
+                            }).encode())
+                            return
+                
+                # No flattening needed
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "type": "regular_data",
+                    "message": "No flattening required"
+                }).encode())
+                
+            finally:
+                if os.path.exists(input_path):
+                    os.unlink(input_path)
+                    
+        except Exception as e:
+            self.send_error(500, str(e))
+            logging.error(f"Structure check error: {str(e)}")
+    
     def handle_preview(self):
-        """Handle preview request and return converted data preview."""
         try:
             content_type = self.headers.get('Content-Type', '')
             if not content_type.startswith('multipart/form-data'):
