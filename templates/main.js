@@ -207,31 +207,41 @@ async function handleConversion(e) {
         const checkResult = await checkResponse.json();
         
         let shouldFlatten = false;
+        let shouldContinue = true;  // flag to determine whether to continue with conversion
         
         if (checkResult.type === 'semi_data_warning') {
             // ask user about flattening before showing file dialog
             if (confirm(checkResult.message)) {
                 shouldFlatten = true;
+            } else {
+                // user declined to flatten, don't continue with conversion
+                shouldContinue = false;
             }
         }
         
-        if (shouldFlatten) {
-            formData.append('flatten', 'true');
-        }
+        // only continue with the conversion if we don't need flattening or user agreed to flatten
+        if (shouldContinue) {
+            if (shouldFlatten) {
+                formData.append('flatten', 'true');
+            }
 
-        //Now proceed with conversion
-        const response = await fetch('/convert', {
-            method: 'POST',
-            body: formData
-        });
+            // proceed with conversion
+            const response = await fetch('/convert', {
+                method: 'POST',
+                body: formData
+            });
 
-        if (!response.ok) {
-            throw new Error(await response.text());
-        }
+            if (!response.ok) {
+                throw new Error(await response.text());
+            }
 
-        const result = await response.json();
-        if (result.type === 'success') {
-            alert('Conversion completed successfully!');
+            const result = await response.json();
+            if (result.type === 'success') {
+                alert('Conversion completed successfully!');
+            }
+        } else {
+            // inform the user if the conversion was cancelled
+            alert('Conversion cancelled.');
         }
     } catch (error) {
         console.error('Conversion error:', error);
