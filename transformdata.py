@@ -802,7 +802,11 @@ class DataTransformerCLI:
         }
 
     def run(self):
-        parser = argparse.ArgumentParser(description='CLI tool for data transformation and mock data generation.')
+        parser = argparse.ArgumentParser(
+            prog='dsxform',
+            description='CLI tool for data conversion and regex based mock data generation.',
+            epilog=f'Supported formats: {self.transformer.supported_formats}'
+        )
         subparsers = parser.add_subparsers(dest='command', required=True, help='Available commands')
 
         # convert command
@@ -814,13 +818,14 @@ class DataTransformerCLI:
         generate_parser = subparsers.add_parser('generate', aliases=['g'], help='Generate mock data.')
         generate_parser.add_argument('rows', type=int, help='Number of rows to generate.')
         generate_parser.add_argument('output', help='Path to the output file.')
+        generate_parser.add_argument('--config', '-C', help='Path to the configuration file. Uses default if not specified.')
 
         args = parser.parse_args()
 
         if args.command in ('convert', 'c'):
             self.handle_convert(args.input, args.output)
         elif args.command in ('generate', 'g'):
-            self.handle_generate(args.rows, args.output)
+            self.handle_generate(args.rows, args.output, args.config)
 
     def handle_convert(self, input_path, output_path):
         if not os.path.exists(input_path):
@@ -858,7 +863,7 @@ class DataTransformerCLI:
         except Exception as e:
             print(f"Conversion failed: {str(e)}")
 
-    def handle_generate(self, rows, output_path):
+    def handle_generate(self, rows, output_path, config_path=None):
         # determine output format
         output_ext = os.path.splitext(output_path)[1].lower()
         output_format = self.format_mapping.get(output_ext)
@@ -866,6 +871,13 @@ class DataTransformerCLI:
         if not output_format:
             print(f"Unsupported output format: {output_ext}")
             return
+        
+        # set config path if provided
+        if config_path:
+            if not os.path.exists(config_path):
+                print(f"Error: Config file '{config_path}' does not exist.")
+                return
+            self.transformer.config_path = config_path
 
         try:
             self.transformer.generate_data(rows, output_path, output_format)
