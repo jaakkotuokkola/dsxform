@@ -274,13 +274,6 @@ h2 {
 /*note: some of the preview styling is not used in the current version*/
 /* none of the detailed color schemes are used in the current previews */
 /* Syntax highlighting for JSON/XML */
-.string { color: #22863a; }
-.number { color: #005cc5; }
-.boolean { color: #005cc5; }
-.null { color: #5a5a5a; }
-.key { color: #d73a49; }
-.tag { color: #22863a; }
-.attr { color: #6f42c1; }
 
 .preview-data.sqlite-view {
     padding: 0;
@@ -324,24 +317,6 @@ h2 {
 .sqlite-table .null-value {
     color: #666666;
     font-style: italic;
-}
-
-/* JSON styling */
-.preview-data.json-view .key { color: #9cdcfe; }
-.preview-data.json-view .string { color: #ce9178; }
-.preview-data.json-view .number { color: #b5cea8; }
-.preview-data.json-view .boolean { color: #569cd6; }
-.preview-data.json-view .null { color: #569cd6; }
-
-/* XML styling */
-.preview-data.xml-view .tag { color: #569cd6; }
-.preview-data.xml-view .attr { color: #9cdcfe; }
-.preview-data.xml-view .string { color: #ce9178; }
-.preview-data.xml-view .content { color: #d4d4d4; }
-
-/* CSV styling */
-.preview-data.csv-view {
-    color: #d4d4d4;
 }
 
 /* SQLite Grid View Styling */
