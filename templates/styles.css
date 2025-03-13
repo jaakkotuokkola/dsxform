@@ -1,12 +1,12 @@
 :root {
-    --primary-color: #64b687;
-    --primary-hover: #3a6548;
+    --primary-color: #000000cc;
+    --primary-hover: #8a9199;
     --bg-color: rgba(33, 33, 33, .9); 
     --surface-color: #2f2f2f;
     --border-color: #444;
     --text-color: #ececec;
     --text-muted: #8a9199;
-    --focus-ring: rgba(100, 182, 135, 0.25);
+    --focus-ring: rgba(255, 255, 255, 0.25);
     --error-color: #dc3545;
     --success-color: #28a745;
 }
@@ -56,12 +56,12 @@ body {
     border-left: 3px solid transparent;
 }
 .tab-buttons button:hover {
-    background-color: rgba(43, 76, 58, 0.08);
+    background-color: var(--primary-hover);
 }
 .tab-buttons button.active {
-    background-color: rgba(43, 76, 58, 0.15);
-    border-left: 3px solid var(--primary-color);
-    color: var(--primary-color);
+    background-color: rgba(24, 24, 24, 0.6);
+    border-right: 3px solid #00000069;
+    color: var(--text-color);
     font-weight: 500;
 }
 .main-content {
@@ -467,7 +467,6 @@ h2 {
     width: 100%;
     margin-bottom: 16px;
 }
-
 /* Modal Dialog */
 .modal-overlay {
     display: none;
@@ -813,10 +812,11 @@ h2 {
 
 /* Preview container styles */
 .preview-container {
-    margin-top: 24px;
+    margin-top: 0;
     border: 1px solid var(--border-color);
     border-radius: 6px;
     padding: 16px;
+    background-color: var(--surface-color);
 }
 
 .preview-container h3 {
@@ -1068,7 +1068,7 @@ h2 {
     top: 50%;
     right: 4px;
     transform: translateY(-50%);
-    background-color: var(--primary-color);
+    background-color:  rgb(7, 145, 69);
     color: white;
     border: none;
     border-radius: 4px;
