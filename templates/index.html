@@ -175,6 +175,20 @@ Select an input file to see preview
                             <span class="tooltiptext">Any whitespace</span>
                         </div>
                         
+                        <!-- Negated escape sequences (new) -->
+                        <div class="tooltip">
+                            <div class="pattern-component" onclick="addToPattern('\\D')">\\D</div>
+                            <span class="tooltiptext">Any non-digit</span>
+                        </div>
+                        <div class="tooltip">
+                            <div class="pattern-component" onclick="addToPattern('\\W')">\\W</div>
+                            <span class="tooltiptext">Any non-word character</span>
+                        </div>
+                        <div class="tooltip">
+                            <div class="pattern-component" onclick="addToPattern('\\S')">\\S</div>
+                            <span class="tooltiptext">Any non-whitespace</span>
+                        </div>
+                        
                         <!-- Any character -->
                         <div class="tooltip">
                             <div class="pattern-component" onclick="addToPattern('.')">.</div>
@@ -189,6 +203,20 @@ Select an input file to see preview
                         <div class="tooltip">
                             <div class="pattern-component" onclick="addToPattern('{1,5}')">Range {m,n}</div>
                             <span class="tooltiptext">Between m and n times</span>
+                        </div>
+                        
+                        <!-- Shorthand quantifiers (new) -->
+                        <div class="tooltip">
+                            <div class="pattern-component" onclick="addToPattern('?')">?</div>
+                            <span class="tooltiptext">Zero or one time</span>
+                        </div>
+                        <div class="tooltip">
+                            <div class="pattern-component" onclick="addToPattern('+')">+</div>
+                            <span class="tooltiptext">One or more times</span>
+                        </div>
+                        <div class="tooltip">
+                            <div class="pattern-component" onclick="addToPattern('*')">*</div>
+                            <span class="tooltiptext">Zero or more times</span>
                         </div>
                         
                         <!-- Alternation -->

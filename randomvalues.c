@@ -6,7 +6,7 @@
 #include <ctype.h>
 // gcc -shared -o librandomvalues.so -fPIC randomvalues.c
 
-// lastedit: 13.2.2025, alternation added, tested manually
+// update: added shorthand quantifiers (*, +, ?) and negated character class escapes (\D, \W, \S)
 
 // This C code will break down a regular expression pattern.
 // It will then generate random data based on the different broken down tokens.
@@ -34,7 +34,7 @@ enum TokenType {
     TOKEN_GROUP
 };
 
-// Will build a tree from the tokens that is then looped through to generate random data based on the different nodes
+// An AST is built from the tokens that is then looped through to generate random data based on the different nodes
 // Not sure if this is ideal, but it does not cost any performance for the current use case, since it is built once per configuration file
 // And it is easy to understand and work with
 enum ASTNodeType {
@@ -89,19 +89,15 @@ char* generate_from_pattern(const char* pattern, int max_length);
 char random_char_in_range(char start, char end) {
     return start + (rand() % (end - start + 1));
 }
-
 char random_digit() {
     return '0' + (rand() % 10);
 }
-
 char random_lowercase() {
     return 'a' + (rand() % 26);
 }
-
 char random_uppercase() {
     return 'A' + (rand() % 26);
 }
-
 char random_alphanumeric() {
     if (rand() % 2 == 0) {
         return random_lowercase();
@@ -109,13 +105,32 @@ char random_alphanumeric() {
         return random_digit();
     }
 }
-
 char random_whitespace() {
     char whitespace_chars[] = {' ', '\t', '\n', '\r'};
     return whitespace_chars[rand() % 4];
 }
+char random_non_digit() {
+    char c;
+    do {
+        c = random_char_in_range(' ', '~');
+    } while (isdigit(c));
+    return c;
+}
+char random_non_word() {
+    char c;
+    do {
+        c = random_char_in_range(' ', '~');
+    } while (isalnum(c) || c == '_');
+    return c;
+}
+char random_non_whitespace() {
+    char c;
+    do {
+        c = random_char_in_range(' ', '~');
+    } while (isspace(c));
+    return c;
+}
 
-// Helper function to parse alternatives
 int parse_alternative(const char* pattern, int* index, char* buffer) {
     int buf_idx = 0;
     int depth = 0;
@@ -142,23 +157,65 @@ int parse_alternative(const char* pattern, int* index, char* buffer) {
     return buf_idx;
 }
 
-// Function that breaks down the pattern into tokens
+// function that breaks down the pattern into tokens
 int tokenize(const char* pattern, Token** tokens, int* num_tokens) {
-    *tokens = (Token*)calloc(256, sizeof(Token)); // Use calloc instead of malloc
+    *tokens = (Token*)calloc(256, sizeof(Token));
     if (*tokens == NULL) return -1;
 
     int token_index = 0;
     int pattern_index = 0;
 
     while (pattern[pattern_index] != '\0') {
-        if (pattern[pattern_index] == '\\') {
             // escape sequences
+        if (pattern[pattern_index] == '\\') {
             pattern_index++;
             (*tokens)[token_index].type = TOKEN_ESCAPE;
             (*tokens)[token_index].value[0] = pattern[pattern_index];
+            
+            // identify negated character classes by their uppercase nature
+            (*tokens)[token_index].is_negated = (pattern[pattern_index] == 'D' || 
+                                               pattern[pattern_index] == 'W' || 
+                                               pattern[pattern_index] == 'S');
+            
+            // store lowercase version of the escape character for proper processing
+            if ((*tokens)[token_index].is_negated) {
+                printf("Found negated escape: \\%c\n", pattern[pattern_index]);
+            }
+            
             (*tokens)[token_index].value[1] = '\0';
             token_index++;
             pattern_index++;
+            
+            // check for quantifier after escape sequence
+            if (pattern_index < strlen(pattern) && 
+                (pattern[pattern_index] == '*' || 
+                 pattern[pattern_index] == '+' || 
+                 pattern[pattern_index] == '?')) {
+                
+                (*tokens)[token_index].type = TOKEN_QUANTIFIER;
+                
+                switch (pattern[pattern_index]) {
+                    case '*': // 0 or more
+                        (*tokens)[token_index].min = 0;
+                        (*tokens)[token_index].max = 10; // using 10 as a reasonable upper limit
+                        break;
+                    case '+': // 1 or more
+                        (*tokens)[token_index].min = 1;
+                        (*tokens)[token_index].max = 10; // -||-
+                        break;
+                    case '?': // 0 or 1
+                        (*tokens)[token_index].min = 0;
+                        (*tokens)[token_index].max = 1;
+                        break;
+                }
+                
+                (*tokens)[token_index].value[0] = pattern[pattern_index];
+                (*tokens)[token_index].value[1] = '\0';
+                token_index++;
+                pattern_index++;
+                
+                printf("Added quantifier %c after escape sequence\n", pattern[pattern_index-1]);
+            }
         } else if (pattern[pattern_index] == '[') {
             // character classes
             pattern_index++;
@@ -174,6 +231,37 @@ int tokenize(const char* pattern, Token** tokens, int* num_tokens) {
             (*tokens)[token_index].value[value_index] = '\0';
             token_index++;
             pattern_index++;
+            
+            // check for quantifier after character class
+            if (pattern_index < strlen(pattern) && 
+                (pattern[pattern_index] == '*' || 
+                 pattern[pattern_index] == '+' || 
+                 pattern[pattern_index] == '?')) {
+                
+                (*tokens)[token_index].type = TOKEN_QUANTIFIER;
+                
+                switch (pattern[pattern_index]) {
+                    case '*': // 0 or more
+                        (*tokens)[token_index].min = 0;
+                        (*tokens)[token_index].max = 10;
+                        break;
+                    case '+': // 1 or more
+                        (*tokens)[token_index].min = 1;
+                        (*tokens)[token_index].max = 10;
+                        break;
+                    case '?': // 0 or 1
+                        (*tokens)[token_index].min = 0;
+                        (*tokens)[token_index].max = 1;
+                        break;
+                }
+                
+                (*tokens)[token_index].value[0] = pattern[pattern_index];
+                (*tokens)[token_index].value[1] = '\0';
+                token_index++;
+                pattern_index++;
+                
+                printf("Added quantifier after character class\n");
+            }
         } else if (pattern[pattern_index] == '{') {
             // quantifiers
             pattern_index++; // skip '{'
@@ -199,11 +287,63 @@ int tokenize(const char* pattern, Token** tokens, int* num_tokens) {
             
             token_index++;
             pattern_index++; // skip '}'
+        } else if (pattern[pattern_index] == '*' || 
+                  pattern[pattern_index] == '+' || 
+                  pattern[pattern_index] == '?') {
+            // shorthand quantifiers
+            (*tokens)[token_index].type = TOKEN_QUANTIFIER;
+            
+            switch (pattern[pattern_index]) {
+                case '*': // 0 or more
+                    (*tokens)[token_index].min = 0;
+                    (*tokens)[token_index].max = 10;
+                    break;
+                case '+': // 1 or more
+                    (*tokens)[token_index].min = 1;
+                    (*tokens)[token_index].max = 10;
+                    break;
+                case '?': // 0 or 1
+                    (*tokens)[token_index].min = 0;
+                    (*tokens)[token_index].max = 1;
+                    break;
+            }
+            
+            token_index++;
+            pattern_index++;
         } else if (pattern[pattern_index] == '.') {
             // handle any character
             (*tokens)[token_index].type = TOKEN_ANY_CHAR;
             token_index++;
             pattern_index++;
+            
+            // Check for quantifier after dot
+            if (pattern_index < strlen(pattern) && 
+                (pattern[pattern_index] == '*' || 
+                 pattern[pattern_index] == '+' || 
+                 pattern[pattern_index] == '?')) {
+                
+                (*tokens)[token_index].type = TOKEN_QUANTIFIER;
+                
+                switch (pattern[pattern_index]) {
+                    case '*': // 0 or more
+                        (*tokens)[token_index].min = 0;
+                        (*tokens)[token_index].max = 10;
+                        break;
+                    case '+': // 1 or more
+                        (*tokens)[token_index].min = 1;
+                        (*tokens)[token_index].max = 10;
+                        break;
+                    case '?': // 0 or 1
+                        (*tokens)[token_index].min = 0;
+                        (*tokens)[token_index].max = 1;
+                        break;
+                }
+                
+                (*tokens)[token_index].value[0] = pattern[pattern_index];
+                (*tokens)[token_index].value[1] = '\0';
+                token_index++;
+                pattern_index++;
+            }
         } else if (pattern[pattern_index] == '^') {
             // handle start of string
             (*tokens)[token_index].type = TOKEN_START;
@@ -248,13 +388,19 @@ int tokenize(const char* pattern, Token** tokens, int* num_tokens) {
                         // check for regex escapes
                         if (pattern[pattern_index + 1] == 'd' || 
                             pattern[pattern_index + 1] == 'w' ||
-                            pattern[pattern_index + 1] == 's') {
+                            pattern[pattern_index + 1] == 's' ||
+                            pattern[pattern_index + 1] == 'D' || 
+                            pattern[pattern_index + 1] == 'W' ||
+                            pattern[pattern_index + 1] == 'S') {
                             has_patterns = true;
                         }
                         buffer[buf_idx++] = pattern[pattern_index++];
                         buffer[buf_idx++] = pattern[pattern_index];
                     } else if (pattern[pattern_index] == '[' || 
-                             pattern[pattern_index] == '{') {
+                             pattern[pattern_index] == '{' ||
+                             pattern[pattern_index] == '*' ||
+                             pattern[pattern_index] == '+' ||
+                             pattern[pattern_index] == '?') {
                         has_patterns = true;
                         buffer[buf_idx++] = pattern[pattern_index];
                     } else if (pattern[pattern_index] == '|' && nested == 1) {
@@ -510,7 +656,6 @@ void free_tokens(Token* tokens) {
     free(tokens);
 }
 
-// Random seed initialization
 void initialize_random() {
     srand(time(NULL));
 }
@@ -614,6 +759,15 @@ int generate_all_data(char** headers, char** patterns, int num_headers,
                                 case 's':
                                     buffer[output_index++] = random_whitespace();
                                     break;
+                                case 'D': // non-digit
+                                    buffer[output_index++] = random_non_digit();
+                                    break;
+                                case 'W': // non-word
+                                    buffer[output_index++] = random_non_word();
+                                    break;
+                                case 'S': // non-whitespace
+                                    buffer[output_index++] = random_non_whitespace();
+                                    break;
                                 default:
                                     buffer[output_index++] = node->value[0];
                                     break;
@@ -672,24 +826,44 @@ void generate_from_node(ASTNode* node, char* buffer, int* output_index) {
             break;
             
         case AST_ESCAPE:
-            switch (node->value[0]) {
-                case 'd':
-                    buffer[*output_index] = random_digit();
-                    (*output_index)++;
-                    break;
-                case 'w':
-                    buffer[*output_index] = random_alphanumeric();
-                    (*output_index)++;
-                    break;
-                case 's':
-                    buffer[*output_index] = random_whitespace();
-                    (*output_index)++;
-                    break;
-                default:
-                    buffer[*output_index] = node->value[0];
-                    (*output_index)++;
-                    break;
+            // Convert uppercase escape char to lowercase for processing negated classes
+            char escapeChar = node->value[0];
+            
+            if (node->is_negated) {
+                printf("Generating for negated escape: \\%c\n", escapeChar);
+                
+                switch (escapeChar) {
+                    case 'D': // non-digit
+                        buffer[*output_index] = random_non_digit();
+                        break;
+                    case 'W': // non-word
+                        buffer[*output_index] = random_non_word();
+                        break;
+                    case 'S': // non-whitespace
+                        buffer[*output_index] = random_non_whitespace();
+                        break;
+                    default:
+                        // Should not get here, but handle as literal
+                        buffer[*output_index] = escapeChar;
+                        break;
+                }
+            } else {
+                switch (escapeChar) {
+                    case 'd':
+                        buffer[*output_index] = random_digit();
+                        break;
+                    case 'w':
+                        buffer[*output_index] = random_alphanumeric();
+                        break;
+                    case 's':
+                        buffer[*output_index] = random_whitespace();
+                        break;
+                    default:
+                        buffer[*output_index] = escapeChar;
+                        break;
+                }
             }
+            (*output_index)++;
             break;
             
         case AST_CHAR_CLASS:
@@ -726,7 +900,7 @@ void generate_from_node(ASTNode* node, char* buffer, int* output_index) {
     }
 }
 
-// Function to generate a random value from a single AST node for pattern previews
+// function to generate a random value from a single AST node for pattern previews
 int generate_random_value_from_ast(ASTNode* root, char* buffer, int max_length) {
     int output_index = 0;
     buffer[0] = '\0';
@@ -773,6 +947,15 @@ int generate_random_value_from_ast(ASTNode* root, char* buffer, int max_length) 
                             break;
                         case 's':
                             buffer[output_index++] = random_whitespace();
+                            break;
+                        case 'D': // non-digit
+                            buffer[output_index++] = random_non_digit();
+                            break;
+                        case 'W': // non-word
+                            buffer[output_index++] = random_non_word();
+                            break;
+                        case 'S': // non-whitespace
+                            buffer[output_index++] = random_non_whitespace();
                             break;
                         default:
                             buffer[output_index++] = node->value[0];

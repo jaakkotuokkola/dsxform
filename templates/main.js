@@ -1,4 +1,3 @@
-
 // UX/UI logic for the main application browser interface
 
 function showTab(tabId, evt) {
@@ -732,9 +731,9 @@ function isValidCharacterClass(value) {
     return /^\[(\^)?[a-zA-Z0-9_\-]+\]$/.test(value);
 }
 
-// validate quantifier format like {3}, {1,5}
+// validate quantifier format like {3}, {1,5}, or shorthand quantifiers *, +, ?
 function isValidQuantifier(value) {
-    return /^\{(\d+)(?:,(\d+))?\}$/.test(value);
+    return /^\{(\d+)(?:,(\d+))?\}$/.test(value) || /^[\*\+\?]$/.test(value);
 }
 
 // validate alternation format like (a|b|c)
@@ -764,23 +763,45 @@ function tokenizePattern(pattern) {
         if (pattern[i] === '\\') {
             // escape sequences
             const escapeChar = pattern[i+1] || '';
-            tokens.push({
+            const isNegated = escapeChar === 'D' || escapeChar === 'W' || escapeChar === 'S';
+            
+            // Create the escape token
+            const escapeToken = {
                 type: 'escape',
                 value: '\\' + escapeChar,
-                display: '\\' + escapeChar
-            });
+                display: '\\' + escapeChar,
+                isNegated: isNegated
+            };
+            tokens.push(escapeToken);
             i += 2;
+            
+            // Check for quantifiers after escape sequence and attach to it
+            if (i < pattern.length && (pattern[i] === '*' || pattern[i] === '+' || pattern[i] === '?')) {
+                escapeToken.value += pattern[i];
+                escapeToken.display += pattern[i];
+                i++;
+            }
         } else if (pattern[i] === '[') {
             // character class
             let endIdx = pattern.indexOf(']', i);
             if (endIdx === -1) endIdx = pattern.length;
             const classContent = pattern.substring(i, endIdx + 1);
-            tokens.push({
+            
+            // Create character class token
+            const classToken = {
                 type: 'character-class',
                 value: classContent,
                 display: classContent
-            });
+            };
+            tokens.push(classToken);
             i = endIdx + 1;
+            
+            // Check for quantifiers after character class and attach to it
+            if (i < pattern.length && (pattern[i] === '*' || pattern[i] === '+' || pattern[i] === '?')) {
+                classToken.value += pattern[i];
+                classToken.display += pattern[i];
+                i++;
+            }
         } else if (pattern[i] === '{') {
             // quantifier
             let endIdx = pattern.indexOf('}', i);
@@ -793,7 +814,7 @@ function tokenizePattern(pattern) {
             });
             i = endIdx + 1;
         } else if (pattern[i] === '(') {
-            // alternation or group, needs more work for displaying alternated tokens
+            // alternation or group
             let nestLevel = 1;
             let endIdx = i + 1;
             
@@ -804,34 +825,70 @@ function tokenizePattern(pattern) {
             }
             
             const groupContent = pattern.substring(i, endIdx);
-            tokens.push({
+            
+            // Create alternation token
+            const altToken = {
                 type: 'alternation',
                 value: groupContent,
                 display: groupContent
-            });
+            };
+            tokens.push(altToken);
             i = endIdx;
+            
+            // Check for quantifiers after alternation and attach to it
+            if (i < pattern.length && (pattern[i] === '*' || pattern[i] === '+' || pattern[i] === '?')) {
+                altToken.value += pattern[i];
+                altToken.display += pattern[i];
+                i++;
+            }
         } else if (pattern[i] === '.') {
             // any character
-            tokens.push({
+            const dotToken = {
                 type: 'any-char',
                 value: '.',
                 display: '.'
+            };
+            tokens.push(dotToken);
+            i++;
+            
+            // Check for quantifiers after dot and attach to it
+            if (i < pattern.length && (pattern[i] === '*' || pattern[i] === '+' || pattern[i] === '?')) {
+                dotToken.value += pattern[i];
+                dotToken.display += pattern[i];
+                i++;
+            }
+        } else if (pattern[i] === '*' || pattern[i] === '+' || pattern[i] === '?') {
+            // standalone quantifier (should be attached to previous token but handle for safety)
+            tokens.push({
+                type: 'quantifier',
+                value: pattern[i],
+                display: pattern[i]
             });
             i++;
         } else {
             // literal - collect consecutive literal characters
             let literalStart = i;
             while (i < pattern.length && 
-                   !'\\[{(.'.includes(pattern[i]) && 
+                   !'\\[{(.?*+'.includes(pattern[i]) && 
                    (i === pattern.length - 1 || pattern[i+1] !== '{')) {
                 i++;
             }
             const literalContent = pattern.substring(literalStart, i);
-            tokens.push({
+            
+            // Create literal token
+            const literalToken = {
                 type: 'literal',
                 value: literalContent,
                 display: literalContent
-            });
+            };
+            tokens.push(literalToken);
+            
+            // Check for quantifiers after literal and attach to it
+            if (i < pattern.length && (pattern[i] === '*' || pattern[i] === '+' || pattern[i] === '?')) {
+                literalToken.value += pattern[i];
+                literalToken.display += pattern[i];
+                i++;
+            }
         }
     }
     
