@@ -14,10 +14,18 @@ import xml.etree.ElementTree as ET
 from filedialog import get_save_dialog
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
-# This python file is used for a simple tool for converting data between different formats
-# And also for generating mock data based on given regular expressions
-# Most of the regex and data generation logic is implemented in C
+# -----------------------------------------------------------
+#   
+#   This python file is used as the main backend for dsxform tool 
+#   it handles converting data between different formats
+#   and includes generating mock data based on regex patterns.
+#
+#   Most of the mock data generation is handled by randomvalues.c
+#   which is compiled into a shared library and used through ctypes.
+#
+#------------------------------------------------------------
 
+# ctypes structures for use with the C library 
 class ASTNode(ctypes.Structure):
     pass
 
@@ -43,7 +51,7 @@ class DataTransformer:
         self.configs_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'configs')
         os.makedirs(self.configs_dir, exist_ok=True)
         
-        # C library compiled from randomvalues.c
+        # C library and functions
         self.lib = ctypes.CDLL('./librandomvalues.so')
         self.lib.tokenize.argtypes = [
             ctypes.c_char_p,                        # Pattern
@@ -111,7 +119,7 @@ class DataTransformer:
         try:
             with open(config_path, 'w') as f:
                 json.dump(config_data, f, indent=2)
-            self.config_path = config_path  # update config path
+            self.config_path = config_path
             return True
         except Exception as e:
             logging.error(f"Error saving config {config_path}: {str(e)}")
@@ -119,12 +127,11 @@ class DataTransformer:
     
     def test_pattern(self, pattern, num_samples=5):
         """Test a regex pattern by generating mock samples for preview."""
+                # For the preview in the pattern editor
         try:
             samples = []
-            
             tokens_ptr = ctypes.POINTER(Token)()
             num_tokens = ctypes.c_int(0)
-
             pattern_bytes = pattern.encode('utf-8')
             
             if self.lib.tokenize(pattern_bytes, ctypes.byref(tokens_ptr), ctypes.byref(num_tokens)) != 0:
@@ -216,7 +223,7 @@ class DataTransformer:
             flattened[key] = value
 
     # Functions for reading and writing data sets in different formats
-    # Some of these functions could be rewritten from scratch, maybe in C for better performance
+    # Some of these functions could be rewritten , maybe in C for better performance
     #  Atleast json and csv seemed to gain significant speedups from prototype C implementations
     #    for now will keep them in Python due to time constraints
     def read_csv(self, csv_path):
@@ -445,9 +452,9 @@ class DataTransformer:
         except IOError:
             raise ValueError(f"Unable to write to file: {xml_path}")
     
-    # the idea is to generate random data based on regular expressions defined for each header/key in the config file
+    # generate random data based on regular expressions defined for each header/key in the config file
     def generate_data(self, rows, output_path, output_format):
-        """Generate mock data based on configured header patterns."""
+        """Generate mock data based on configured patterns for each header."""
         logging.info(f"Starting data generation for {rows} rows")
         start_time = time.time()
         try:
@@ -594,7 +601,7 @@ class DataTransformer:
             raise ValueError(f"Unsupported output format: {output_format}")
         
     def preview_convert(self, input_path, output_format, table=None, flatten=False, limit=1000):
-        """Generate a small output preview using the actual conversion logic"""
+        """Generates a small output preview using the actual conversion logic"""
         try:
             input_format = os.path.splitext(input_path)[1][1:]
             
@@ -739,27 +746,27 @@ class DataTransformer:
         else:
             element.text = str(data) if data is not None else ''
 
-    def _xml_to_dict(self, element):
-        """Convert XML element to dictionary for preview."""
-        result = {}
-        for child in element:
-            if len(child) > 0:
-                # has children
-                if child.tag in result:
-                    if not isinstance(result[child.tag], list):
-                        result[child.tag] = [result[child.tag]]
-                    result[child.tag].append(self._xml_to_dict(child))
-                else:
-                    result[child.tag] = self._xml_to_dict(child)
-            else:
-                # no children
-                if child.tag in result:
-                    if not isinstance(result[child.tag], list):
-                        result[child.tag] = [result[child.tag]]
-                    result[child.tag].append(child.text or '')
-                else:
-                    result[child.tag] = child.text or ''
-        return result
+    #def _xml_to_dict(self, element):
+    #    """Convert XML element to dictionary for preview."""
+    #    result = {}
+    #    for child in element:
+    #        if len(child) > 0:
+    #            # has children
+    #            if child.tag in result:
+    #                if not isinstance(result[child.tag], list):
+    #                    result[child.tag] = [result[child.tag]]
+    #                result[child.tag].append(self._xml_to_dict(child))
+    #            else:
+    #                result[child.tag] = self._xml_to_dict(child)
+    #        else:
+    #            # no children
+    #            if child.tag in result:
+    #                if not isinstance(result[child.tag], list):
+    #                    result[child.tag] = [result[child.tag]]
+    #                result[child.tag].append(child.text or '')
+    #            else:
+    #                result[child.tag] = child.text or ''
+    #    return result
 
     def handle_save_dialog(self):
         """Handle file dialog request."""
@@ -958,6 +965,8 @@ class DataTransformerHandler(BaseHTTPRequestHandler):
             self.handle_finalize()
         elif self.path == '/generate':
             self.handle_generate()
+        elif self.path == '/generate-preview':
+            self.handle_generate_preview()
         elif self.path == '/list-configs':
             self.handle_list_configs()
         elif self.path == '/get-config':
@@ -1296,6 +1305,114 @@ class DataTransformerHandler(BaseHTTPRequestHandler):
         except Exception as e:
             self.send_error(500, str(e))
             logging.error(f"Error testing pattern: {str(e)}")
+
+    def handle_generate_preview(self):
+        """Handle request to preview generated data."""
+        try:
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length).decode('utf-8')
+            data = json.loads(body)
+            
+            # Use a small number of samples for preview
+            num_samples = 10  # Generate 10 sample rows
+            output_format = data.get('format', 'csv')
+            config_name = data.get('config')
+            
+            if not config_name or config_name == 'new':
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "type": "error",
+                    "message": "Please select a valid configuration"
+                }).encode())
+                return
+                
+            # Set config path to the selected config
+            config_path = os.path.join(self.transformer.configs_dir, config_name)
+            if not os.path.exists(config_path):
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "type": "error",
+                    "message": f"Configuration '{config_name}' not found"
+                }).encode())
+                return
+            
+            # Load the configuration
+            try:
+                with open(config_path, 'r') as f:
+                    config = json.load(f)
+                
+                headers = config.get('headers', [])
+                patterns = config.get('patterns', {})
+                
+                if not headers or not patterns:
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({
+                        "type": "error",
+                        "message": "Configuration has no fields defined"
+                    }).encode())
+                    return
+                
+                # Generate preview samples for each field pattern
+                sample_data = []
+                for _ in range(num_samples):
+                    row = {}
+                    for header in headers:
+                        pattern = patterns.get(header, '')
+                        if pattern:
+                            # Get a sample value for this pattern
+                            samples = self.transformer.test_pattern(pattern, 1)
+                            row[header] = samples[0] if samples else f"Error: {header}"
+                        else:
+                            row[header] = f"No pattern for {header}"
+                    sample_data.append(row)
+                
+                # Format the preview based on output format
+                if output_format == 'csv':
+                    output = StringIO()
+                    writer = csv.DictWriter(output, fieldnames=headers)
+                    writer.writeheader()
+                    writer.writerows(sample_data)
+                    preview_content = output.getvalue()
+                elif output_format == 'json':
+                    preview_content = json.dumps(sample_data, indent=2)
+                elif output_format == 'xml':
+                    root = ET.Element("root")
+                    for record in sample_data:
+                        record_elem = ET.SubElement(root, "record")
+                        self.transformer._dict_to_xml(record, record_elem)
+                    self.transformer._indent_xml(root)
+                    preview_content = ET.tostring(root, encoding='unicode')
+                elif output_format == 'sqlite':
+                    # Use grid view for SQLite format
+                    preview_content = self.transformer._create_grid_view(sample_data)
+                
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "type": "preview",
+                    "data": preview_content,
+                    "format": output_format
+                }).encode())
+                
+            except Exception as e:
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "type": "error",
+                    "message": f"Error generating preview: {str(e)}"
+                }).encode())
+                
+        except Exception as e:
+            self.send_error(500, str(e))
+            logging.error(f"Generate preview error: {str(e)}")
 
 def run_server(port=8000):
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)

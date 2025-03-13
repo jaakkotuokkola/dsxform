@@ -1,3 +1,4 @@
+
 // UX/UI logic for the main application browser interface
 
 function showTab(tabId, evt) {
@@ -1054,12 +1055,11 @@ async function loadConfigs() {
         // populate config selection
         const configSelect = document.getElementById('configSelect');
         
-        // Clear all options except "Create New"
         while (configSelect.options.length > 1) {
             configSelect.remove(1);
         }
         
-        // Add configurations to dropdown
+        // add configurations to dropdown
         configs.forEach(config => {
             const option = document.createElement('option');
             option.value = config;
@@ -1067,12 +1067,12 @@ async function loadConfigs() {
             configSelect.appendChild(option);
         });
         
-        // If we have configurations, select the first one
+        // if we have configurations, select the first one
         if (configs.length > 0) {
             configSelect.value = configs[0];
             loadSelectedConfig();
         } else {
-            // No configurations, select "Create New"
+            // no configurations, select "Create New"
             configSelect.value = "new";
             createNewConfig();
         }
@@ -1114,6 +1114,12 @@ async function loadSelectedConfig() {
         document.getElementById('configNameContainer').style.display = 'none';
         
         renderPatternRows();
+        
+        // update preview if it's visible
+        const previewView = document.getElementById('previewView');
+        if (previewView.classList.contains('active')) {
+            updateGeneratePreview();
+        }
     } catch (error) {
         console.error('Error loading config:', error);
         alert('Failed to load configuration: ' + error.message);
@@ -1308,4 +1314,86 @@ document.addEventListener('DOMContentLoaded', function() {
             tooltipText.style.opacity = '0';
         });
     });
+    
+    // initialize generate tab with proper id
+    const generateOutputFormat = document.querySelector('#generateForm select[name="format"]');
+    if (generateOutputFormat) {
+        generateOutputFormat.id = 'generateOutputFormat';
+    }
 });
+
+// toggle between configuration and preview in the Generate tab
+function showGenerateView(viewId, button) {
+    document.querySelectorAll('.generate-nav .nav-button').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    button.classList.add('active');
+    
+    document.querySelectorAll('.view-panel').forEach(panel => {
+        panel.classList.remove('active');
+    });
+    
+    document.getElementById(viewId + 'View').classList.add('active');
+    
+    if (viewId === 'preview') {
+        updateGeneratePreview();
+    }
+}
+
+// update generate preview based on current config
+async function updateGeneratePreview() {
+    const configSelect = document.getElementById('configSelect');
+    const selectedConfig = configSelect.value;
+    const format = document.getElementById('generateOutputFormat').value;
+    const previewData = document.getElementById('generatePreviewData');
+    
+    // only show preview if we have a valid config
+    if (selectedConfig === 'new' || !selectedConfig) {
+        previewData.textContent = 'Please save your configuration before previewing data.';
+        return;
+    }
+    
+    previewData.textContent = 'Loading preview...';
+    
+    try {
+        const response = await fetch('/generate-preview', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                config: selectedConfig,
+                format: format,
+                rows: 25
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(await response.text());
+        }
+
+        const result = await response.json();
+        
+        if (result.type === 'preview') {
+            previewData.className = `preview-data ${format}-view`;
+            
+            if (format === 'sqlite') {
+                previewData.innerHTML = result.data;  // use HTML for grid view
+            } else {
+                previewData.textContent = result.data;  // use text for other formats
+            }
+        } else {
+            previewData.textContent = 'Error: ' + result.message;
+        }
+    } catch (error) {
+        previewData.textContent = 'Error: ' + error.message;
+    }
+}
+
+function handleGenerateFormatChange() {
+    // only update preview if the preview view is active
+    const previewView = document.getElementById('previewView');
+    if (previewView.classList.contains('active')) {
+        updateGeneratePreview();
+    }
+}

@@ -77,7 +77,7 @@ Select an input file to see preview
                     <div class="form-row">
                         <div class="form-group">
                             <label>Output Format:</label>
-                            <select name="format" required>
+                            <select name="format" id="generateOutputFormat" required onchange="handleGenerateFormatChange()">
                                 <option value="csv">CSV</option>
                                 <option value="json">JSON</option>
                                 <option value="sqlite">SQLite</option>
@@ -94,10 +94,15 @@ Select an input file to see preview
                     </div>
                 </div>
                 
+                <!-- Navigation buttons for Config/Preview -->
+                <div class="generate-nav">
+                    <button class="nav-button active" onclick="showGenerateView('config', this)">Configuration</button>
+                    <button class="nav-button" onclick="showGenerateView('preview', this)">Preview</button>
+                </div>
+                
                 <!-- Inline Configuration Panel -->
-                <div class="config-panel">
+                <div id="configView" class="config-panel view-panel active">
                     <div class="config-header">
-                        <h3>Configuration</h3>
                         <div class="config-selector">
                             <select id="configSelect" name="config" onchange="loadSelectedConfig()">
                                 <option value="new" style="background-color: var(--primary-color);">+ Create new</option>
@@ -130,6 +135,16 @@ Select an input file to see preview
                     
                     <div class="config-actions">
                         <button type="button" class="saveConfig" onclick="saveConfig()">Save</button>
+                    </div>
+                </div>
+                
+                <!-- Preview Panel (initially hidden) -->
+                <div id="previewView" class="preview-panel view-panel">
+                    <div class="preview-container">
+                        <h3>Preview of Generated Data</h3>
+                        <pre id="generatePreviewData" class="preview-data">
+Click "Preview" to see sample data based on your configuration
+                        </pre>
                     </div>
                 </div>
             </div>
