@@ -253,7 +253,12 @@ class DataTransformer:
     def read_json(self, json_path):
         try:
             with open(json_path, 'r') as json_file:
-                return json.load(json_file)
+                data = json.load(json_file)
+                # for consistency across formats, we always return a list of records
+                # so even if the input is a single record, we wrap it in a list
+                if not isinstance(data, list):
+                    data = [data]
+                return data
         except FileNotFoundError:
             raise ValueError(f"Input file not found: {json_path}")
         except json.JSONDecodeError:
