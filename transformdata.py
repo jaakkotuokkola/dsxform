@@ -291,7 +291,6 @@ class DataTransformer:
             cursor = conn.cursor()
             
             if table is None:
-                # Read all tables
                 tables = self.list_sqlite_tables(db_path)
                 all_data = {}
                 for t in tables:
@@ -300,7 +299,6 @@ class DataTransformer:
                     all_data[t] = [dict(zip(headers, row)) for row in cursor.fetchall()]
                 return all_data
             else:
-                # Read specific table
                 cursor.execute(f'SELECT * FROM {table}')
                 data = cursor.fetchall()
                 headers = [desc[0] for desc in cursor.description]
@@ -666,33 +664,33 @@ class DataTransformer:
         """Add proper indentation to XML elements with consistent formatting."""
         indent = "  " * level
         if len(elem):
-            # initial text indentation
+        # initial text indentation
             if not elem.text or not elem.text.strip():
                 elem.text = "\n" + indent + "  "
             elif elem.text.strip():
-                # if there's content, indent after the content
+        # if there's content, indent after the content
                 elem.text = elem.text.strip() + "\n" + indent + "  "
 
-            # handle all subelements
+        # subelements
             last_elem = None
             for subelem in elem:
                 self._indent_xml(subelem, level + 1)
                 if last_elem is not None:
-                    # set tail for the previous element
+        # set tail for the previous element
                     last_elem.tail = "\n" + indent + "  "
                 last_elem = subelem
 
-            # handle the last element's tail
+        # handle the last element's tail
             if last_elem is not None:
                 last_elem.tail = "\n" + indent
 
-            # set this element's tail
+        # set this element's tail
             if elem.tail and elem.tail.strip():
                 elem.tail = elem.tail.strip() + "\n" + ("  " * (level - 1))
             else:
                 elem.tail = "\n" + ("  " * (level - 1))
         else:
-            # for elements without children
+        # for elements without children
             if elem.text and elem.text.strip():
                 elem.text = elem.text.strip()
             if elem.tail and elem.tail.strip():
@@ -747,28 +745,6 @@ class DataTransformer:
                     child.text = str(item) if item is not None else ''
         else:
             element.text = str(data) if data is not None else ''
-
-    #def _xml_to_dict(self, element):
-    #    """Convert XML element to dictionary for preview."""
-    #    result = {}
-    #    for child in element:
-    #        if len(child) > 0:
-    #            # has children
-    #            if child.tag in result:
-    #                if not isinstance(result[child.tag], list):
-    #                    result[child.tag] = [result[child.tag]]
-    #                result[child.tag].append(self._xml_to_dict(child))
-    #            else:
-    #                result[child.tag] = self._xml_to_dict(child)
-    #        else:
-    #            # no children
-    #            if child.tag in result:
-    #                if not isinstance(result[child.tag], list):
-    #                    result[child.tag] = [result[child.tag]]
-    #                result[child.tag].append(child.text or '')
-    #            else:
-    #                result[child.tag] = child.text or ''
-    #    return result
 
     def handle_save_dialog(self):
         """Handle file dialog request."""
@@ -856,7 +832,6 @@ class DataTransformerCLI:
             result = self.transformer.convert(input_path, output_path, input_format, output_format,
                                   flatten=False)
             if result['type'] == 'semi_data_warning':
-                # check for nested data, notify user
                 response = input("Irregular or nested data detected. Flatten it for structured output? y/n ").strip().lower()
                 if response == 'y':
                     self.transformer.convert(input_path, output_path, input_format, output_format, flatten=True)
@@ -1034,10 +1009,9 @@ class DataTransformerHandler(BaseHTTPRequestHandler):
                 input_format = filename.rsplit('.', 1)[1].lower()
                 flatten = form.getvalue('flatten') == 'true'
                 table_name = form.getvalue('table')
-                # Check if we have a saved path from previous request
+                # check if we have a saved path from previous request
                 saved_path = form.getvalue('saved_path')
 
-                # special handling for SQLite input, to list tables
                 if (input_format == 'sqlite'):
                     # only prompt for tables on first request (without table parameter)
                     if not table_name:
@@ -1059,7 +1033,7 @@ class DataTransformerHandler(BaseHTTPRequestHandler):
                         self.wfile.write(json.dumps(response_data).encode())
                         return
 
-                # Get save path, but only if we don't already have one from a previous request
+                # get save path, but only if we don't already have one from a previous request
                 if not saved_path:
                     base_name = "converted_tables" if table_name == '*' else "converted"
                     output_path = get_save_dialog(
@@ -1067,7 +1041,7 @@ class DataTransformerHandler(BaseHTTPRequestHandler):
                         default_name=f"{base_name}.{output_format}"
                     )
                     
-                    if not output_path:  # user cancelled
+                    if not output_path:
                         os.unlink(input_path)
                         return
                 else:
@@ -1080,7 +1054,7 @@ class DataTransformerHandler(BaseHTTPRequestHandler):
                                       table=table,
                                       flatten=flatten)
                 
-                # If we get a warning about semi-structured data, include the saved path
+                # if we get a warning about semi-structured data, include the saved path
                 if result.get('type') == 'semi_data_warning':
                     result['saved_path'] = output_path
                 
@@ -1129,7 +1103,7 @@ class DataTransformerHandler(BaseHTTPRequestHandler):
             filename = file_data['filename']
             output_format = form.getvalue('output_format')
             
-            # Save uploaded file temporarily
+            # save uploaded file temporarily
             input_path = os.path.join(UPLOAD_FOLDER, filename)
             with open(input_path, 'wb') as f:
                 f.write(file_data['content'])
@@ -1137,13 +1111,13 @@ class DataTransformerHandler(BaseHTTPRequestHandler):
             try:
                 input_format = filename.rsplit('.', 1)[1].lower()
                 
-                # Only check structure if output format requires structured data
+                # only check structure if output format requires structured data
                 if output_format in ['csv', 'sqlite']:
-                    # For JSON and XML, read the data and check structure
+                    # for JSON and XML, read the data and check structure
                     if input_format in ['json', 'xml']:
                         data = self.transformer._read_input(input_path, input_format)
                         
-                        # Ensure data is a list for consistency
+                        # ensure data is a list for consistency
                         if not isinstance(data, list):
                             data = [data]
                             
@@ -1157,7 +1131,6 @@ class DataTransformerHandler(BaseHTTPRequestHandler):
                             }).encode())
                             return
                 
-                # No flattening needed
                 self.send_response(200)
                 self.send_header('Content-Type', 'application/json')
                 self.end_headers()
@@ -1215,7 +1188,6 @@ class DataTransformerHandler(BaseHTTPRequestHandler):
                 flatten = form.getvalue('flatten') == 'true'
                 table_name = form.getvalue('table')
 
-                # special handling for SQLite tables
                 if input_format == 'sqlite' and not table_name:
                     tables = self.transformer.list_sqlite_tables(input_path)
                     if not tables:
@@ -1274,17 +1246,15 @@ class DataTransformerHandler(BaseHTTPRequestHandler):
             output_format = data.get('format')
             config_name = data.get('config')
             
-            # set config path to the selected config
             if config_name:
                 self.transformer.config_path = os.path.join(self.transformer.configs_dir, config_name)
             
-            # get save path using file dialog
             output_path = get_save_dialog(
                 title="Save Generated Data",
                 default_name=f"generated_data.{output_format}"
             )
             
-            if not output_path:  # user cancelled dialog
+            if not output_path:
                 self.send_response(200)
                 self.send_header('Content-Type', 'application/json')
                 self.end_headers()
@@ -1294,7 +1264,6 @@ class DataTransformerHandler(BaseHTTPRequestHandler):
                 }).encode())
                 return
             
-            # generate data
             self.transformer.generate_data(rows, output_path, output_format)
             
             self.send_response(200)
@@ -1406,8 +1375,8 @@ class DataTransformerHandler(BaseHTTPRequestHandler):
             body = self.rfile.read(content_length).decode('utf-8')
             data = json.loads(body)
             
-            # Use a small number of samples for preview
-            num_samples = 10  # Generate 10 sample rows
+            # small number of samples for preview
+            num_samples = 10
             output_format = data.get('format', 'csv')
             config_name = data.get('config')
             
@@ -1421,7 +1390,6 @@ class DataTransformerHandler(BaseHTTPRequestHandler):
                 }).encode())
                 return
                 
-            # Set config path to the selected config
             config_path = os.path.join(self.transformer.configs_dir, config_name)
             if not os.path.exists(config_path):
                 self.send_response(200)
@@ -1433,7 +1401,7 @@ class DataTransformerHandler(BaseHTTPRequestHandler):
                 }).encode())
                 return
             
-            # Load the configuration
+            # load the configuration
             try:
                 with open(config_path, 'r') as f:
                     config = json.load(f)
@@ -1451,21 +1419,20 @@ class DataTransformerHandler(BaseHTTPRequestHandler):
                     }).encode())
                     return
                 
-                # Generate preview samples for each field pattern
+                # generate preview samples for each field pattern
                 sample_data = []
                 for _ in range(num_samples):
                     row = {}
                     for header in headers:
                         pattern = patterns.get(header, '')
                         if pattern:
-                            # Get a sample value for this pattern
                             samples = self.transformer.test_pattern(pattern, 1)
                             row[header] = samples[0] if samples else f"Error: {header}"
                         else:
                             row[header] = f"No pattern for {header}"
                     sample_data.append(row)
                 
-                # Format the preview based on output format
+                # format the preview based on output format
                 if output_format == 'csv':
                     output = StringIO()
                     writer = csv.DictWriter(output, fieldnames=headers)
@@ -1482,7 +1449,7 @@ class DataTransformerHandler(BaseHTTPRequestHandler):
                     self.transformer._indent_xml(root)
                     preview_content = ET.tostring(root, encoding='unicode')
                 elif output_format == 'sqlite':
-                    # Use grid view for SQLite format
+                    # grid view for SQLite format
                     preview_content = self.transformer._create_grid_view(sample_data)
                 
                 self.send_response(200)
