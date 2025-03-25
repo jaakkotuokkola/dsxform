@@ -1,4 +1,5 @@
-// UX/UI logic for the main application browser interface
+
+// UX/UI functionality for the application browser interface
 
 function showTab(tabId, evt) {
     document.querySelectorAll('.tab').forEach(tab => {
@@ -411,58 +412,6 @@ async function editConfig() {
     }
 }
 
-// render pattern rows based on current config
-function renderPatternRows() {
-    const rowsContainer = document.getElementById('patternRows');
-    rowsContainer.innerHTML = '';
-    
-    if (!currentConfig || !currentConfig.headers || !currentConfig.patterns) {
-        console.warn('No valid configuration to render');
-        return;
-    }
-    
-    currentConfig.headers.forEach(header => {
-        const pattern = currentConfig.patterns[header] || '';
-        
-        const row = document.createElement('div');
-        row.className = 'pattern-row';
-        
-        // pattern name cell
-        const nameCell = document.createElement('div');
-        nameCell.className = 'pattern-name';
-        nameCell.textContent = header;
-        row.appendChild(nameCell);
-        
-        // pattern value cell
-        const valueCell = document.createElement('div');
-        valueCell.className = 'pattern-value';
-        valueCell.textContent = pattern;
-        row.appendChild(valueCell);
-        
-        // controls cell
-        const controlsCell = document.createElement('div');
-        controlsCell.className = 'pattern-controls';
-        
-        // edit pattern
-        const editButton = document.createElement('button');
-        editButton.className = 'btn-icon';
-        editButton.textContent = 'Edit';
-        editButton.onclick = function() { editPattern(header); };
-        controlsCell.appendChild(editButton);
-        
-        // delete pattern
-        const deleteButton = document.createElement('button');
-        deleteButton.className = 'btn-icon';
-        deleteButton.textContent = 'Delete';
-        deleteButton.onclick = function() { deletePattern(header); };
-        controlsCell.appendChild(deleteButton);
-        
-        row.appendChild(controlsCell);
-        rowsContainer.appendChild(row);
-    });
-}
-
-// function for editing existing pattern
 function editPattern(field) {
     currentEditField = field;
     
@@ -525,8 +474,7 @@ function addToPattern(component) {
             }
         }, 0);
     } else {
-        // for non-editable tokens, just test the pattern
-        testPattern(); // update preview after addition
+        testPattern();
     }
 }
 
@@ -534,7 +482,7 @@ function addToPattern(component) {
 function removeToken(index) {
     currentTokens.splice(index, 1);
     renderTokens(currentTokens);
-    testPattern(); // update preview after removal
+    testPattern();
 }
 
 // drag and drop functionality for changing token order
@@ -569,7 +517,8 @@ function handleDrop(e) {
         currentTokens.splice(sourceIndex, 1);
         currentTokens.splice(targetIndex, 0, temp);
         renderTokens(currentTokens);
-        testPattern(); // update preview after reordering
+        // update preview after reordering
+        testPattern(); 
     }
     return false;
 }
@@ -610,7 +559,8 @@ function renderTokens(tokens) {
         deleteBtn.className = 'token-delete';
         deleteBtn.innerHTML = '&times;';
         deleteBtn.onclick = (e) => {
-            e.stopPropagation(); // prevent token click when delete is clicked
+            // prevent token click when delete is clicked
+            e.stopPropagation(); 
             removeToken(index);
         };
         tokenElem.appendChild(deleteBtn);
@@ -625,9 +575,9 @@ function renderTokens(tokens) {
                 input.focus();
                 input.select();
                 
-                // Add input event handler to adjust width as user types
+                // input event handler to adjust width as user types into the field
                 input.addEventListener('input', function() {
-                    // Create a hidden span to measure text width
+                    // hidden span to measure text width
                     const tempSpan = document.createElement('span');
                     tempSpan.style.font = window.getComputedStyle(input).font;
                     tempSpan.style.position = 'absolute';
@@ -636,11 +586,10 @@ function renderTokens(tokens) {
                     tempSpan.textContent = this.value || this.placeholder || '';
                     
                     document.body.appendChild(tempSpan);
-                    // Add some padding to the width
                     const calculatedWidth = tempSpan.getBoundingClientRect().width + 20;
                     document.body.removeChild(tempSpan);
                     
-                    // Set width (with minimum)
+                    // set width (with minimum)
                     this.style.width = Math.max(40, calculatedWidth) + 'px';
                 });
                 
@@ -738,7 +687,7 @@ function isValidQuantifier(value) {
     return /^\{(\d+)(?:,(\d+))?\}$/.test(value) || /^[\*\+\?]$/.test(value);
 }
 
-// validate alternation format like (a|b|c)
+// validate alternation format like (a|b|c), a single alternative inside parentheses should also be valid, useful for repeated sequences
 function isValidAlternation(value) {
     return /^\([^()]+(?:\|[^()]+)+\)$/.test(value);
 }
@@ -767,7 +716,7 @@ function tokenizePattern(pattern) {
             const escapeChar = pattern[i+1] || '';
             const isNegated = escapeChar === 'D' || escapeChar === 'W' || escapeChar === 'S';
             
-            // Create the escape token
+            // create escape token
             const escapeToken = {
                 type: 'escape',
                 value: '\\' + escapeChar,
@@ -777,7 +726,7 @@ function tokenizePattern(pattern) {
             tokens.push(escapeToken);
             i += 2;
             
-            // Check for quantifiers after escape sequence and attach to it
+            // check for quantifiers after escape sequence and attach to it
             if (i < pattern.length && (pattern[i] === '*' || pattern[i] === '+' || pattern[i] === '?')) {
                 escapeToken.value += pattern[i];
                 escapeToken.display += pattern[i];
@@ -789,7 +738,7 @@ function tokenizePattern(pattern) {
             if (endIdx === -1) endIdx = pattern.length;
             const classContent = pattern.substring(i, endIdx + 1);
             
-            // Create character class token
+            // character class token
             const classToken = {
                 type: 'character-class',
                 value: classContent,
@@ -798,7 +747,7 @@ function tokenizePattern(pattern) {
             tokens.push(classToken);
             i = endIdx + 1;
             
-            // Check for quantifiers after character class and attach to it
+            // check for quantifiers after character class and attach to it
             if (i < pattern.length && (pattern[i] === '*' || pattern[i] === '+' || pattern[i] === '?')) {
                 classToken.value += pattern[i];
                 classToken.display += pattern[i];
@@ -828,7 +777,7 @@ function tokenizePattern(pattern) {
             
             const groupContent = pattern.substring(i, endIdx);
             
-            // Create alternation token
+            // create alternation token
             const altToken = {
                 type: 'alternation',
                 value: groupContent,
@@ -837,7 +786,7 @@ function tokenizePattern(pattern) {
             tokens.push(altToken);
             i = endIdx;
             
-            // Check for quantifiers after alternation and attach to it
+            // check for quantifiers after alternation and attach to it
             if (i < pattern.length && (pattern[i] === '*' || pattern[i] === '+' || pattern[i] === '?')) {
                 altToken.value += pattern[i];
                 altToken.display += pattern[i];
@@ -853,7 +802,7 @@ function tokenizePattern(pattern) {
             tokens.push(dotToken);
             i++;
             
-            // Check for quantifiers after dot and attach to it
+            // check for quantifiers after dot and attach to it
             if (i < pattern.length && (pattern[i] === '*' || pattern[i] === '+' || pattern[i] === '?')) {
                 dotToken.value += pattern[i];
                 dotToken.display += pattern[i];
@@ -877,7 +826,7 @@ function tokenizePattern(pattern) {
             }
             const literalContent = pattern.substring(literalStart, i);
             
-            // Create literal token
+            // create literal token
             const literalToken = {
                 type: 'literal',
                 value: literalContent,
@@ -885,7 +834,7 @@ function tokenizePattern(pattern) {
             };
             tokens.push(literalToken);
             
-            // Check for quantifiers after literal and attach to it
+            // check for quantifiers after literal and attach to it
             if (i < pattern.length && (pattern[i] === '*' || pattern[i] === '+' || pattern[i] === '?')) {
                 literalToken.value += pattern[i];
                 literalToken.display += pattern[i];
@@ -971,7 +920,6 @@ async function confirmSaveConfig() {
         return;
     }
     
-    // add .json extension if not present
     let fileName = configName;
     if (!fileName.endsWith('.json')) {
         fileName += '.json';
@@ -1011,7 +959,6 @@ async function confirmSaveConfig() {
     }
 }
 
-// close pattern builder without saving
 function closePatternBuilder() {
     if (confirm('Discard all changes?')) {
         document.getElementById('patternBuilderModal').style.display = 'none';
@@ -1039,7 +986,6 @@ let currentConfig = {
     patterns: {}
 };
 
-// load available configs
 async function loadConfigs() {
     try {
         const response = await fetch('/list-configs', {
@@ -1110,13 +1056,10 @@ async function loadSelectedConfig() {
         
         const result = await response.json();
         currentConfig = result.config;
-        
-        // hide the config name input when loading an existing config
         document.getElementById('configNameContainer').style.display = 'none';
         
         renderPatternRows();
         
-        // update preview if it's visible
         const previewView = document.getElementById('previewView');
         if (previewView.classList.contains('active')) {
             updateGeneratePreview();
@@ -1133,16 +1076,13 @@ function createNewConfig() {
         patterns: {}
     };
     
-    // Show the config name input for new configurations
     const configNameContainer = document.getElementById('configNameContainer');
     configNameContainer.style.display = 'block';
     document.getElementById('configNameInput').value = 'new_config.json';
     
-    // Render empty pattern rows
     renderPatternRows();
 }
 
-// render pattern rows based on current config
 function renderPatternRows() {
     const rowsContainer = document.getElementById('patternRows');
     rowsContainer.innerHTML = '';
@@ -1158,30 +1098,30 @@ function renderPatternRows() {
         const row = document.createElement('div');
         row.className = 'pattern-row';
         
-        // pattern name cell
+    // pattern name cell
         const nameCell = document.createElement('div');
         nameCell.className = 'pattern-name';
         nameCell.textContent = header;
         row.appendChild(nameCell);
         
-        // pattern value cell
+    // pattern value cell
         const valueCell = document.createElement('div');
         valueCell.className = 'pattern-value';
         valueCell.textContent = pattern;
         row.appendChild(valueCell);
         
-        // controls cell
+    // controls cell
         const controlsCell = document.createElement('div');
         controlsCell.className = 'pattern-controls';
         
-        // edit pattern
+    // edit pattern
         const editButton = document.createElement('button');
         editButton.className = 'btn-icon';
         editButton.textContent = 'Edit';
         editButton.onclick = function() { editPattern(header); };
         controlsCell.appendChild(editButton);
         
-        // delete pattern
+    // delete pattern
         const deleteButton = document.createElement('button');
         deleteButton.className = 'btn-icon';
         deleteButton.textContent = 'Delete';
@@ -1221,6 +1161,7 @@ function saveConfig() {
     }
     
     // ensure that a pattern is defined for each field
+    // tell the user which fields are missing patterns
     let missingPatterns = [];
     currentConfig.headers.forEach(header => {
         if (!currentConfig.patterns[header]) {
@@ -1228,7 +1169,6 @@ function saveConfig() {
         }
     });
     
-    // tell the user which fields need patterns
     if (missingPatterns.length > 0) {
         alert(`Please define patterns for these fields: ${missingPatterns.join(', ')}`);
         return;
@@ -1249,7 +1189,6 @@ function saveConfig() {
         configName = configSelect.value;
     }
     
-    // add .json extension if not present
     if (!configName.endsWith('.json')) {
         configName += '.json';
     }
@@ -1302,7 +1241,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     loadConfigs(); // load available configurations on page load
     
-    // add event listeners for tooltips
     const tooltips = document.querySelectorAll('.tooltip');
     tooltips.forEach(tooltip => {
         const tooltipText = tooltip.querySelector('.tooltiptext');
@@ -1316,14 +1254,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // initialize generate tab with proper id
     const generateOutputFormat = document.querySelector('#generateForm select[name="format"]');
     if (generateOutputFormat) {
         generateOutputFormat.id = 'generateOutputFormat';
     }
 });
 
-// toggle between configuration and preview in the Generate tab
 function showGenerateView(viewId, button) {
     document.querySelectorAll('.generate-nav .nav-button').forEach(btn => {
         btn.classList.remove('active');
@@ -1341,7 +1277,6 @@ function showGenerateView(viewId, button) {
     }
 }
 
-// update generate preview based on current config
 async function updateGeneratePreview() {
     const configSelect = document.getElementById('configSelect');
     const selectedConfig = configSelect.value;
@@ -1379,9 +1314,9 @@ async function updateGeneratePreview() {
             previewData.className = `preview-data ${format}-view`;
             
             if (format === 'sqlite') {
-                previewData.innerHTML = result.data;  // use HTML for grid view
+                previewData.innerHTML = result.data;    // HTML for grid view
             } else {
-                previewData.textContent = result.data;  // use text for other formats
+                previewData.textContent = result.data;  // text for other formats
             }
         } else {
             previewData.textContent = 'Error: ' + result.message;
