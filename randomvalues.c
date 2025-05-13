@@ -6,13 +6,8 @@
 #include <ctype.h>
 // gcc -shared -o librandomvalues.so -fPIC randomvalues.c
 
-// update: added shorthand quantifiers (*, +, ?) and negated character class escapes (\D, \W, \S)
-
-// This C code will break down a regular expression pattern.
-// It will then generate random data based on the different broken down tokens.
-// Currently supports a subset of relevant regex features for the purpose of this project.
-// Supported features can be seen in the token types below.
-// Expanding later to support more features should be relatively easy.
+// This C code will generate random data based on a regex pattern.
+// Supported regex syntax can be seen in the token or AST node types.
 
 typedef enum TokenType TokenType;
 typedef enum ASTNodeType ASTNodeType;
@@ -21,7 +16,7 @@ typedef struct ASTNode ASTNode;
 typedef struct CachedAlternatives CachedAlternatives;
 void generate_from_node(ASTNode* node, char* buffer, int* output_index);
 
-// These are the types of tokens the regular expression can be broken down into
+// TokenType and ASTNodeType are used to identify the type of the individual parts of the regex pattern
 enum TokenType {
     TOKEN_LITERAL,
     TOKEN_CHAR_CLASS,
@@ -34,9 +29,6 @@ enum TokenType {
     TOKEN_GROUP
 };
 
-// An AST is built from the tokens that is then looped through to generate random data based on the different nodes
-// Not sure if this is ideal, but it does not cost any performance for the current use case, since it is built once per configuration file
-// And it is easy to understand and work with
 enum ASTNodeType {
     AST_LITERAL,
     AST_CHAR_CLASS,
@@ -66,7 +58,9 @@ struct Token {
     int num_alternatives;
     CachedAlternatives* cached_alts;
 };
-
+// ASTNode refers to the nodes that are later grouped into an abstract syntax tree (AST)
+// The AST is used to hierarchically represent the structure of the regex pattern
+// each node represents a part of the regex pattern
 struct ASTNode {
     ASTNodeType type;
     char value[256];
@@ -130,7 +124,7 @@ char random_non_whitespace() {
     } while (isspace(c));
     return c;
 }
-
+// function to parse alternation-typed patterns
 int parse_alternative(const char* pattern, int* index, char* buffer) {
     int buf_idx = 0;
     int depth = 0;
@@ -157,7 +151,7 @@ int parse_alternative(const char* pattern, int* index, char* buffer) {
     return buf_idx;
 }
 
-// function that breaks down the pattern into tokens
+// function that breaks down the expression into its components
 int tokenize(const char* pattern, Token** tokens, int* num_tokens) {
     *tokens = (Token*)calloc(256, sizeof(Token));
     if (*tokens == NULL) return -1;
@@ -197,7 +191,7 @@ int tokenize(const char* pattern, Token** tokens, int* num_tokens) {
                 switch (pattern[pattern_index]) {
                     case '*': // 0 or more
                         (*tokens)[token_index].min = 0;
-                        (*tokens)[token_index].max = 10; // using 10 as a reasonable upper limit
+                        (*tokens)[token_index].max = 10; // using 10 repetitions as a reasonable limit
                         break;
                     case '+': // 1 or more
                         (*tokens)[token_index].min = 1;
@@ -311,7 +305,7 @@ int tokenize(const char* pattern, Token** tokens, int* num_tokens) {
             token_index++;
             pattern_index++;
         } else if (pattern[pattern_index] == '.') {
-            // handle any character
+            // handle any character (dot wildcard)
             (*tokens)[token_index].type = TOKEN_ANY_CHAR;
             token_index++;
             pattern_index++;
@@ -374,8 +368,7 @@ int tokenize(const char* pattern, Token** tokens, int* num_tokens) {
                 int buf_idx = 0;
                 bool has_patterns = false;
                 
-                // pre process alternatives while checking for regex patterns
-                // to handle alternations between different token types
+                // pre process alternatives within parentheses, check for nested groups
                 while (pattern[pattern_index] != '\0' && nested > 0) {
                     if (pattern[pattern_index] == '(') {
                         nested++;
@@ -442,7 +435,7 @@ int tokenize(const char* pattern, Token** tokens, int* num_tokens) {
                 
                 alt_idx++;
                 buf_idx = 0;
-                pattern_index++;  // skipping the |
+                pattern_index++;  // skip |
                 
                 while (pattern[pattern_index] != '\0') {
                     if (pattern[pattern_index] == '|') {
@@ -490,24 +483,23 @@ int tokenize(const char* pattern, Token** tokens, int* num_tokens) {
             (*tokens)[token_index].value[1] = '\0';
             token_index++;
             pattern_index++;
-        }// add more cases, some might be handled in above cases
+        }// add more cases, some might need to be handled within above cases
     }
 
     *num_tokens = token_index;
-    return 0; // success
+    return 0;
 }
 
-// parse the tokens into an ast, nodes represent different parts of the regex pattern
 int parse_tokens(Token* tokens, int num_tokens, ASTNode** root) {
     printf("Parsing tokens...\n");
-    ASTNode* nodes = (ASTNode*)calloc(num_tokens, sizeof(ASTNode)); // using calloc
+    ASTNode* nodes = (ASTNode*)calloc(num_tokens, sizeof(ASTNode));
     if (!nodes) return -1;
 
     int node_count = 0;
     for (int i = 0; i < num_tokens; ) {
         printf("Processing token %d: type=%d, value='%s'\n", i, tokens[i].type, tokens[i].value);
         
-        // initialize all fields of the node
+        // initialize
         memset(&nodes[node_count], 0, sizeof(ASTNode));
         nodes[node_count].type = (ASTNodeType)tokens[i].type;
         strncpy(nodes[node_count].value, tokens[i].value, 255);
@@ -603,7 +595,6 @@ void free_ast(ASTNode* root) {
     printf("Freeing AST\n");
     if (root->children) {
         for (int i = 0; i < root->num_children; i++) {
-            // free cached alternatives first
             if (root->children[i].cached_alts) {
                 for (int j = 0; j < root->children[i].cached_alts->num_alternatives; j++) {
                     if (root->children[i].cached_alts->roots[j]) {
@@ -692,7 +683,6 @@ int generate_all_data(char** headers, char** patterns, int num_headers,
                 int test_count = 0;
                 if (tokenize(alt, &test_tokens, &test_count) != 0) {
                     free(pattern_copy);
-                    // Cleanup and return error
                     return -1;
                 }
                 free_tokens(test_tokens);
@@ -718,7 +708,7 @@ int generate_all_data(char** headers, char** patterns, int num_headers,
         }
     }
 
-    // generate random data for each pattern, 
+    // generate random data accordingly with the patterns
     for (int r = 0; r < rows; r++) {
         for (int h = 0; h < num_headers; h++) {
             char* buffer = (char*)malloc(256);
@@ -817,7 +807,7 @@ int generate_all_data(char** headers, char** patterns, int num_headers,
 
     return 0;
 }
-// using this in the above function, 
+// using this in the generate_all_data function
 void generate_from_node(ASTNode* node, char* buffer, int* output_index) {
     switch (node->type) {
         case AST_LITERAL:
@@ -826,7 +816,6 @@ void generate_from_node(ASTNode* node, char* buffer, int* output_index) {
             break;
             
         case AST_ESCAPE:
-            // Convert uppercase escape char to lowercase for processing negated classes
             char escapeChar = node->value[0];
             
             if (node->is_negated) {

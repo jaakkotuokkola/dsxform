@@ -1,5 +1,5 @@
 
-// UX/UI functionality for the application browser interface
+// UX/UI functionality for the tools browser interface
 
 function showTab(tabId, evt) {
     document.querySelectorAll('.tab').forEach(tab => {

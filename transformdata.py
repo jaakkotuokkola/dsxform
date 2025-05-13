@@ -16,12 +16,13 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 
 # -----------------------------------------------------------
 #   
-#   This python file is used as the main backend for dsxform tool 
+#   This python file is used as the main platform for dsxform tool 
 #   it handles converting data between different formats
 #   and includes generating mock data based on regex patterns.
 #
 #   Most of the mock data generation is handled by randomvalues.c
 #   which is compiled into a shared library and used through ctypes.
+#   HTTPServer is used to handle requests from the local browser GUI.
 #
 #------------------------------------------------------------
 
@@ -66,7 +67,7 @@ class DataTransformer:
         ]
         self.lib.parse_tokens.restype = ctypes.c_int
         self.lib.initialize_random()
-        # the following functions are only used for the generation preview functionality
+        # the following functions were only called for the preview functionality
         # for actual data generation, the freeing should already be handled in C directly
         self.lib.free_ast.argtypes = [ctypes.POINTER(ASTNode)]
         self.lib.free_ast.restype = None
@@ -80,7 +81,7 @@ class DataTransformer:
         
         default_path = os.path.join(configs_dir, 'default.json')
         if not os.path.exists(default_path):
-            default_config = { # note: change to the actual default after UI is correctly implemented (alternatives UX still faulty)
+            default_config = { # note: change to the better default config
                 "headers": ["id", "name", "email"],
                 "patterns": {
                     "id": "\\d{1,6}",
@@ -222,10 +223,8 @@ class DataTransformer:
         else:
             flattened[key] = value
 
-    # Functions for reading and writing data sets in different formats
-    # Some of these functions could be rewritten , maybe in C for better performance
-    #  Atleast json and csv seemed to gain significant speedups from prototype C implementations
-    #    for now will keep them in Python due to time constraints
+    # Functions for reading and writing data sets in different formats:
+
     def read_csv(self, csv_path):
         """Read CSV and return its data as a list of dictionaries."""
         try:
@@ -473,7 +472,7 @@ class DataTransformer:
                 c_headers[i] = h.encode()
                 c_patterns[i] = patterns[h].encode()
 
-            # using C function for random data generation
+            # call C function for random data generation
             row_ptr_type = ctypes.POINTER(ctypes.c_char_p)
             data_pointer = row_ptr_type()
             if self.lib.generate_all_data(
@@ -627,7 +626,6 @@ class DataTransformer:
                 if self.is_semiStruct(data):
                     if flatten:
                         data = self.flatten_data(data)
-                    # Don't return warning for preview
 
             # format preview based on output format
             if output_format == 'csv':
@@ -771,7 +769,7 @@ class DataTransformer:
 class NestedDataWarning(Warning):
     pass
 
-# can be used as a command line tool through this file, will have less functionality than the browser interface
+# can be used as a command line tool through this file
 class DataTransformerCLI:
     def __init__(self):
         self.transformer = DataTransformer()
