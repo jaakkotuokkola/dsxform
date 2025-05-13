@@ -5,7 +5,7 @@ Supported formats: json, sqlite, csv, xml
 
 note: Current repository may not work on Windows or macOS due to C shared library format (.so). 
 Also requires Python installation on your OS. 
-Templates folder not needed if using only CLI interface.
+Templates folder or file dialog not needed if using only CLI interface.
 
 ## Features
   + ### Mock data generation:
