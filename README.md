@@ -1,5 +1,5 @@
 # dsxform
-A tool for regex-based mock data generation and dataset conversion. 
+A tool for regex-based data generation and dataset conversion. 
 
 Supported formats: json, sqlite, csv, xml
 
@@ -8,7 +8,7 @@ Also requires Python installation on your OS.
 Templates folder or file dialog not needed if using only CLI interface.
 
 ## Features
-  + ### Mock data generation:
+  + ### Data generation:
 
     Create syntatically realistic mock data for testing and development using customizable regular expressions (regex). Outputs data as a flat dataset in your chosen format.
   + ### Dataset conversion:
