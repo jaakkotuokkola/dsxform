@@ -29,13 +29,16 @@ Templates folder or file dialog not needed if using only CLI interface.
 
   Conversion:
   
-  `~$ python transformdata.py convert <input_path> <output_path>
-   ~$ python transformdata.py c <input_path> <output_path>`
+  `~$ python transformdata.py convert <input_path> <output_path>`
+  
+  `~$ python transformdata.py c <input_path> <output_path>`
   
   Generation:
   
-  `~$ python transformdata.py generate <number_of_rows> <output_path>
-   ~$ python transformdata.py generate <number_of_rows> <output_path> -C <config_path>
-   ~$ python transformdata.py g <number_of_rows> <output_path>`
+  `~$ python transformdata.py generate <number_of_rows> <output_path>`
+  
+  `~$ python transformdata.py generate <number_of_rows> <output_path> -C <config_path>`
+  
+  `~$ python transformdata.py g <number_of_rows> <output_path>`
   
 
