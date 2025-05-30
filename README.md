@@ -10,7 +10,7 @@ Templates folder or file dialog not needed if using only CLI interface.
 ## Features
   + ### Data generation:
 
-    Create syntatically realistic mock data for testing and development using customizable regular expressions (regex). Outputs data as a flat dataset in your chosen format.
+    Create syntatically realistic test data for testing and development using customizable regular expressions (regex). Outputs data as a flat dataset in your chosen format.
   + ### Dataset conversion:
 
     Convert datasets between the supported formats. Nested datasets are flattened when converted to CSV or SQLite.
@@ -24,9 +24,6 @@ Templates folder or file dialog not needed if using only CLI interface.
 
   `~$ python transformdata.py serve`
 + ### CLI commands:
-
-  For users preferring the command line, regex configurations can be created directly in a JSON file. Use the structure of default.json in the configs directory as a reference. Currently transformdata.py works as the file the commands are used through.
-
   Conversion:
   
   `~$ python transformdata.py convert <input_path> <output_path>`
@@ -37,8 +34,12 @@ Templates folder or file dialog not needed if using only CLI interface.
   
   `~$ python transformdata.py generate <number_of_rows> <output_path>`
   
+  `~$ python transformdata.py g <number_of_rows> <output_path>`
+  
+  Regex configurations can be created directly in a JSON file. Use the structure of default.json in the configs directory as a reference.
+  
   `~$ python transformdata.py generate <number_of_rows> <output_path> -C <config_path>`
   
-  `~$ python transformdata.py g <number_of_rows> <output_path>`
+ 
   
 
