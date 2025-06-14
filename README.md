@@ -1,12 +1,9 @@
 # dsxform
 A tool for regex-based data generation and dataset conversion.
 
-## Features
- Data generation
 
   - Create syntatically realistic test data for quick testing and development using customizable regular expressions. Outputs data as a flat dataset in the chosen format.
     
- Dataset conversion:
 
   - Convert datasets between the supported formats (JSON, XML, SQLite & CSV). Nested datasets are flattened when converted to CSV or SQLite.
 
