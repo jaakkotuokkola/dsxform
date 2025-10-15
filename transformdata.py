@@ -11,7 +11,7 @@ import xml.etree.ElementTree as ET
 
 # -----------------------------------------------------------
 #   
-#   This python file is used as the main script for dsxform tool 
+#   This python file is used as the main script,
 #   it handles converting data between different formats
 #   and includes generating mock data based on regex patterns.
 #
