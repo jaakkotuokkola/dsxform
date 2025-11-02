@@ -1,28 +1,25 @@
-# dsxform
-A tool for regex-based data generation and dataset conversion.
+#### A tool for regex-based random data generation.
 
+Creates random syntatically realistic data for quick testing using customizable regular expressions. Can also convert datasets between the supported formats (JSON, XML, SQLite & CSV). Nested datasets are flattened when converted to CSV or SQLite.
 
-  - Create syntatically realistic test data for quick testing and development using customizable regular expressions. Outputs data as a flat dataset in the chosen format.
-    
-
-  - Convert datasets between the supported formats (JSON, XML, SQLite & CSV). Nested datasets are flattened when converted to CSV or SQLite.
-
-### CLI commands:
-  Conversion:
+### CLI examples:
   
-  `~$ python transformdata.py convert <input_path> <output_path>`
+  Generates n rows of random data according to the specified regular expressions and headers in the config file. Outputs in the specified path and supported file format.
   
-  `~$ python transformdata.py c <input_path> <output_path>`
+  - `~$ python transformdata.py generate <number_of_rows> <output_path>`
   
-  Generation:
+  - `~$ python transformdata.py g <number_of_rows> <output_path>`
   
-  `~$ python transformdata.py generate <number_of_rows> <output_path>`
+  Regex configurations can be created directly in a JSON file and config path specified at the end with the -C parameter. Should use a structure similar to default.json, otherwise modify functions in transformdata.py.
   
-  `~$ python transformdata.py g <number_of_rows> <output_path>`
+  - `~$ python transformdata.py generate <number_of_rows> <output_path> -C <config_path>`
   
-  - Regex configurations can be created directly in a JSON file. Use the structure of default.json in the configs directory as a reference, since that is the structure they are read from.
+  Datasets can be converted between supported formats.
   
-  `~$ python transformdata.py generate <number_of_rows> <output_path> -C <config_path>`
+  - `~$ python transformdata.py convert <input_path> <output_path>`
+  
+  - `~$ python transformdata.py c <input_path> <output_path>`
+  
   
  
   
